@@ -1,9 +1,11 @@
-// TODO(ui-map, ui-feed): map fills the main area, live feed sits in a right-hand panel.
-export default function Home() {
-  return (
-    <div className="flex min-h-0 flex-1">
-      <section className="flex flex-1 items-center justify-center text-muted">Map</section>
-      <aside className="w-96 border-l border-border bg-surface p-4 text-muted">Live feed</aside>
-    </div>
-  );
+import { Dashboard } from "@/components/feed/dashboard";
+import { parseFilters } from "@/lib/events/filters";
+import { loadHomeEvents } from "@/lib/events/queries";
+
+/** Situation room: live map (left) + filterable realtime feed (right). Filters live in the URL. */
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const filters = parseFilters(await searchParams);
+  const { events, error, now } = await loadHomeEvents(filters);
+
+  return <Dashboard initialEvents={events} filters={filters} serverNow={now} error={error} />;
 }

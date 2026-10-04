@@ -1,0 +1,59 @@
+/* Leaflet overrides for the dark "situation room" theme. Scoped to .pulse-map. */
+.pulse-map {
+  background: var(--background);
+  font-family: inherit;
+}
+
+.pulse-map .leaflet-control-attribution {
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  color: var(--muted);
+  font-size: 10px;
+}
+.pulse-map .leaflet-control-attribution a {
+  color: var(--accent);
+}
+
+.pulse-map .leaflet-bar a,
+.pulse-map .leaflet-bar a:hover {
+  background: var(--surface);
+  color: var(--foreground);
+  border-bottom-color: var(--border);
+}
+.pulse-map .leaflet-bar {
+  border: 1px solid var(--border);
+}
+
+.pulse-map .leaflet-tooltip {
+  background: var(--surface-2);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  max-width: 280px;
+  white-space: normal;
+}
+.pulse-map .leaflet-tooltip-top::before {
+  border-top-color: var(--border);
+}
+
+.pulse-map a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pulse-cluster {
+  background: transparent;
+}
+.pulse-cluster span {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--c) 35%, var(--surface));
+  border: 2px solid var(--c);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 18%, transparent);
+}
