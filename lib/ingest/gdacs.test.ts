@@ -68,15 +68,9 @@ describe("normalizeGdacs", () => {
   const events = normalizeGdacs(fixture(), NOW);
   const byId = (id: string) => events.find((e) => e.external_id === id)!;
 
-  it("normalizes every valid fixture feature", () => {
-    expect(events.map((e) => e.external_id)).toEqual([
-      "TC-1001329",
-      "EQ-1569463",
-      "WF-1032561",
-      "FL-1104191",
-      "WF-1032527",
-      "WF-1032552",
-    ]);
+  it("keeps started, non-green-wildfire features", () => {
+    // Green wildfires are dropped; the flood forecast starts after NOW so it waits.
+    expect(events.map((e) => e.external_id)).toEqual(["TC-1001329", "EQ-1569463"]);
     for (const e of events) {
       expect(e.source).toBe("gdacs");
       expect(e.severity).toBe(2); // all Green
@@ -108,16 +102,28 @@ describe("normalizeGdacs", () => {
     });
   });
 
-  it("resolves countries from affectedcountries or the ISO-3 map", () => {
-    expect(byId("WF-1032561").country).toBe("AU");
-    expect(byId("WF-1032527").country).toBe("PG");
-    expect(byId("WF-1032552").country).toBe("CD");
-    expect(byId("WF-1032552").category).toBe("wildfire");
+  it("drops Green wildfires but keeps Orange ones", () => {
+    const out = normalizeGdacs({ features: [variant(2, {}), variant(4, { alertlevel: "Orange" })] }, NOW);
+    expect(out.map((e) => e.external_id)).toEqual(["WF-1032527"]);
+    expect(out[0]).toMatchObject({ category: "wildfire", severity: expect.any(Number) });
   });
 
-  it("clamps future start dates (flood forecasts) to now and omits empty severity text", () => {
-    const flood = byId("FL-1104191");
-    expect(flood).toMatchObject({ category: "flood", occurred_at: new Date(NOW).toISOString() });
+  it("resolves countries from affectedcountries or the ISO-3 map", () => {
+    const out = normalizeGdacs(
+      { features: [2, 4, 5].map((i) => variant(i, { alertlevel: "Orange" })) },
+      NOW,
+    );
+    const country = (id: string) => out.find((e) => e.external_id === id)!.country;
+    expect(country("WF-1032561")).toBe("AU");
+    expect(country("WF-1032527")).toBe("PG");
+    expect(country("WF-1032552")).toBe("CD");
+  });
+
+  it("skips events that haven't started yet, keeps them once they have", () => {
+    expect(normalizeGdacs({ features: [variant(3, {})] }, NOW)).toEqual([]);
+    const later = Date.parse("2026-10-05T06:00:00Z");
+    const [flood] = normalizeGdacs({ features: [variant(3, {})] }, later);
+    expect(flood).toMatchObject({ category: "flood", occurred_at: "2026-10-05T01:00:00.000Z" });
     expect(flood.summary).not.toMatch(/Magnitude 0/);
   });
 
@@ -163,8 +169,8 @@ describe("normalizeGdacs", () => {
     const out = normalizeGdacs(
       {
         features: [
-          variant(2, { eventid: 7 }, { type: "Polygon", coordinates: [ring] }),
-          variant(2, { eventid: 8 }, { type: "MultiPolygon", coordinates: [[ring]] }),
+          variant(2, { eventid: 7, alertlevel: "Orange" }, { type: "Polygon", coordinates: [ring] }),
+          variant(2, { eventid: 8, alertlevel: "Orange" }, { type: "MultiPolygon", coordinates: [[ring]] }),
         ],
       },
       NOW,
@@ -211,7 +217,9 @@ describe("gdacsIngester.fetchRaw", () => {
     vi.stubGlobal("fetch", fetchMock);
     const raw = await gdacsIngester.fetchRaw();
     expect(fetchMock).toHaveBeenCalledWith(GDACS_URL, expect.objectContaining({ signal: expect.any(AbortSignal) }));
-    expect(gdacsIngester.normalize(raw)).toHaveLength(6);
+    expect(gdacsIngester.normalize(raw).map((e) => e.external_id)).toEqual(
+      expect.arrayContaining(["TC-1001329", "EQ-1569463"]),
+    );
 
     vi.stubGlobal("fetch", vi.fn(async () => new Response("down", { status: 503 })));
     await expect(gdacsIngester.fetchRaw()).rejects.toThrow(/503/);

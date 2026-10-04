@@ -10,8 +10,12 @@ import type { Ingester } from "./types";
  * publishes a new episode each time an event is re-assessed (e.g. every cyclone advisory);
  * the episode is deliberately NOT part of the id, so each run upserts the same row and the
  * title, severity, summary and report link track the latest episode. `occurred_at` is the
- * event's `fromdate` (event start, stable across episodes), clamped to "now" because flood
- * forecasts (GLOFAS) carry a future start date.
+ * event's `fromdate` (event start, stable across episodes).
+ *
+ * Filtering (product decisions):
+ * - Events that haven't started yet (e.g. GLOFAS flood forecasts with a future `fromdate`) are
+ *   skipped until they start, rather than re-stamped "now" on every run.
+ * - Green wildfire alerts are skipped: they are numerous, low-signal and duplicate NASA EONET.
  */
 export const GDACS_URL = "https://www.gdacs.org/gdacsapi/api/Events/geteventlist/EVENTS4APP";
 
@@ -185,7 +189,10 @@ export function normalizeGdacs(raw: unknown, now: number = Date.now()): Normaliz
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) continue;
 
     const start = parseUtc(p.fromdate);
-    if (Number.isNaN(start)) continue;
+    if (Number.isNaN(start) || start > now) continue;
+
+    const level = p.alertlevel.trim();
+    if (type === "WF" && level.toLowerCase() === "green") continue;
 
     const baseTitle = (p.name || p.description || "").trim();
     if (!baseTitle) continue;
@@ -193,7 +200,6 @@ export function normalizeGdacs(raw: unknown, now: number = Date.now()): Normaliz
     const magnitude = type === "EQ" && sd?.severityunit?.trim().toUpperCase() === "M" && sd.severity ? sd.severity : null;
     const title = magnitude != null ? `M${magnitude.toFixed(1)} ${baseTitle}` : baseTitle;
 
-    const level = p.alertlevel.trim();
     const parts = [`${level} alert`];
     const sevText = sd?.severitytext?.trim();
     if (sevText && (sd?.severity ?? 0) > 0) parts.push(sevText);
@@ -212,7 +218,7 @@ export function normalizeGdacs(raw: unknown, now: number = Date.now()): Normaliz
       lng,
       country: gdacsCountry(p.iso3, p.affectedcountries),
       url: httpsUrl(p.url?.report),
-      occurred_at: new Date(Math.min(start, now)).toISOString(),
+      occurred_at: new Date(start).toISOString(),
       raw: item,
     });
   }
