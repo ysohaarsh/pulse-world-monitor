@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useId, useState } from "react";
 import { sendMagicLink, signIn, signUp } from "@/app/login/actions";
 import type { AuthFormState } from "@/app/login/schema";
@@ -89,6 +90,16 @@ function PasswordForm({ mode, next }: { mode: Mode; next: string }) {
               At least 8 characters.
             </p>
           )
+        )}
+        {mode === "signin" && (
+          <p className="mt-1.5 text-right text-xs">
+            <Link
+              href={next === "/" ? "/forgot-password" : `/forgot-password?next=${encodeURIComponent(next)}`}
+              className={`text-accent hover:underline ${FOCUS}`}
+            >
+              Forgot password?
+            </Link>
+          </p>
         )}
       </div>
       <Status state={state} />
