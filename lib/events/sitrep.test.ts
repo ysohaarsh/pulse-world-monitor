@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { SOURCES, type EventRow } from "@/lib/types";
+import type { EventRow } from "@/lib/types";
 import { summarizeSitrep, threatLabel } from "./sitrep";
+import { CORE_SOURCES } from "./sports";
 
 let id = 0;
 function ev(p: Partial<EventRow>): EventRow {
@@ -31,7 +32,7 @@ describe("summarizeSitrep", () => {
     expect(s.threatLabel).toBe("LOW");
     expect(s.hotspots).toEqual([]);
     expect(s.priority).toEqual([]);
-    expect(s.bySource.map((x) => x.count)).toEqual(SOURCES.map(() => 0));
+    expect(s.bySource.map((x) => x.count)).toEqual(CORE_SOURCES.map(() => 0));
   });
 
   it("scores threat from the most severe events", () => {
@@ -67,5 +68,26 @@ describe("summarizeSitrep", () => {
       count: 1,
       latest: "2026-10-04T11:00:00Z",
     });
+  });
+
+  it("ignores sports entirely, even when they are shown", () => {
+    const core = [
+      ev({ category: "conflict", severity: 4, country: "UA" }),
+      ev({ category: "flood", severity: 2, country: "PK", source: "gdelt" }),
+    ];
+    const sports = [
+      ...Array.from({ length: 30 }, () => ev({ category: "sports", source: "sports", severity: 1, country: "GB" })),
+      // Defensive: either field marks an item as sports.
+      ev({ category: "sports", source: "rss", severity: 5, country: "BR" }),
+      ev({ category: "other", source: "sports", severity: 5, country: "BR" }),
+    ];
+    const s = summarizeSitrep([...core, ...sports]);
+    expect(s).toEqual(summarizeSitrep(core));
+    expect(s.total).toBe(2);
+    expect(s.threat).toBe(50); // mean of 4 and 2, not diluted by 30 severity-1 sports items
+    expect(s.byCategory.map((c) => c.category)).not.toContain("sports");
+    expect(s.bySource.map((x) => x.source)).not.toContain("sports");
+    expect(s.hotspots.map((h) => h.country)).toEqual(["UA", "PK"]);
+    expect(summarizeSitrep(sports)).toMatchObject({ total: 0, threat: 0, threatLabel: "LOW", priority: [] });
   });
 });

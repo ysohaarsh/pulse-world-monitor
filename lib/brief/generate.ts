@@ -65,6 +65,9 @@ export async function generateWorldBrief({ force = false, periodEnd }: GenerateO
       .select("id, title, category, severity, country, occurred_at, source", { count: "exact" })
       .gte("occurred_at", period_start)
       .lt("occurred_at", period_end)
+      // Sports is an opt-in side feed: never part of the World Brief (selectEvents drops it too).
+      .neq("category", "sports")
+      .neq("source", "sports")
       .order("severity", { ascending: false })
       .order("occurred_at", { ascending: false })
       .limit(LOAD_LIMIT),
@@ -73,6 +76,8 @@ export async function generateWorldBrief({ force = false, periodEnd }: GenerateO
       .select("id", { count: "exact", head: true })
       .gte("occurred_at", period_start)
       .lt("occurred_at", period_end)
+      .neq("category", "sports")
+      .neq("source", "sports")
       .gte("severity", HIGH_SEVERITY),
   ]);
   if (rowsRes.error) throw new Error(`Failed to load events: ${rowsRes.error.message}`);

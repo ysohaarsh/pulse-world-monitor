@@ -34,6 +34,17 @@ describe("selectEvents", () => {
     expect(selectEvents([a, b, c]).map((e) => e.id)).toEqual([b.id, c.id, a.id]);
   });
 
+  it("never picks sports items", () => {
+    const quake = ev({ severity: 2, category: "earthquake", source: "usgs" });
+    const events = [
+      ev({ title: "Cup final shock", category: "sports", source: "sports", severity: 1 }),
+      ev({ title: "Mislabelled sports item", category: "sports", source: "rss", severity: 5 }),
+      ev({ title: "Sports feed item", category: "other", source: "sports", severity: 5 }),
+      quake,
+    ];
+    expect(selectEvents(events).map((e) => e.id)).toEqual([quake.id]);
+  });
+
   it("caps the total", () => {
     const cats = ["flood", "storm", "conflict", "politics", "economy"] as const;
     const sources = ["rss", "gdelt", "usgs", "eonet"] as const;

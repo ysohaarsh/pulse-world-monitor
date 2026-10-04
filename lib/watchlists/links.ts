@@ -9,7 +9,7 @@ export function watchlistMapHref(w: { categories: readonly string[]; min_severit
   const categories = CATEGORIES.filter((c: Category) => w.categories.includes(c));
   const filters: EventFilters = {
     ...DEFAULT_FILTERS,
-    categories: categories.length > 0 ? categories : [...CATEGORIES],
+    categories: categories.length > 0 ? categories : [...DEFAULT_FILTERS.categories],
     minSeverity: Math.min(5, Math.max(1, Math.round(w.min_severity))) as Severity,
     window: "7d",
   };

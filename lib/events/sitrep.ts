@@ -1,4 +1,5 @@
-import { CATEGORIES, SOURCES, type Category, type EventRow, type Source } from "@/lib/types";
+import type { Category, EventRow, Source } from "@/lib/types";
+import { CORE_CATEGORIES, CORE_SOURCES, withoutSports } from "./sports";
 
 export const THREAT_LEVELS = [
   { min: 80, label: "SEVERE" },
@@ -32,21 +33,25 @@ function bySeverityThenRecency(a: EventRow, b: EventRow): number {
   return b.severity - a.severity || Date.parse(b.occurred_at) - Date.parse(a.occurred_at);
 }
 
-/** Pure summary of the visible events for the SITREP side panel. */
-export function summarizeSitrep(events: readonly EventRow[], { hotspots = 6, priority = 4 } = {}): Sitrep {
+/**
+ * Pure summary of the visible events for the SITREP side panel.
+ * Sports items are ignored entirely (threat index, counts, hotspots, priority), even when shown.
+ */
+export function summarizeSitrep(visible: readonly EventRow[], { hotspots = 6, priority = 4 } = {}): Sitrep {
+  const events = withoutSports(visible);
   const ranked = [...events].sort(bySeverityThenRecency);
   const sample = ranked.slice(0, THREAT_SAMPLE);
   const mean = sample.length ? sample.reduce((s, e) => s + e.severity, 0) / sample.length : 1;
   const threat = sample.length ? Math.round(((mean - 1) / 4) * 100) : 0;
 
-  const categoryCounts = new Map<Category, number>(CATEGORIES.map((c) => [c, 0]));
+  const categoryCounts = new Map<Category, number>(CORE_CATEGORIES.map((c) => [c, 0]));
   const sources = new Map<Source, { count: number; latest: string | null }>(
-    SOURCES.map((s) => [s, { count: 0, latest: null }]),
+    CORE_SOURCES.map((s) => [s, { count: 0, latest: null }]),
   );
   const countries = new Map<string, { count: number; maxSeverity: number }>();
 
   for (const e of events) {
-    categoryCounts.set(e.category, (categoryCounts.get(e.category) ?? 0) + 1);
+    if (categoryCounts.has(e.category)) categoryCounts.set(e.category, categoryCounts.get(e.category)! + 1);
 
     const src = sources.get(e.source);
     if (src) {
@@ -69,8 +74,8 @@ export function summarizeSitrep(events: readonly EventRow[], { hotspots = 6, pri
     highSeverity: events.filter((e) => e.severity >= 4).length,
     byCategory: [...categoryCounts]
       .map(([category, count]) => ({ category, count }))
-      .sort((a, b) => b.count - a.count || CATEGORIES.indexOf(a.category) - CATEGORIES.indexOf(b.category)),
-    bySource: SOURCES.map((s) => ({ source: s, ...sources.get(s)! })),
+      .sort((a, b) => b.count - a.count || CORE_CATEGORIES.indexOf(a.category) - CORE_CATEGORIES.indexOf(b.category)),
+    bySource: CORE_SOURCES.map((s) => ({ source: s, ...sources.get(s)! })),
     hotspots: [...countries]
       .map(([country, v]) => ({ country, ...v }))
       .sort((a, b) => b.count - a.count || b.maxSeverity - a.maxSeverity || a.country.localeCompare(b.country))
