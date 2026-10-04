@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { SOURCES } from "@/lib/types";
 import {
   categoryShares,
   countByCategory,
@@ -34,7 +35,7 @@ describe("empty input", () => {
     expect(s.countries).toEqual([]);
     expect(s.timeline).toHaveLength(24);
     expect(s.timeline.every((b) => b.total === 0)).toBe(true);
-    expect(s.sources.map((x) => x.count)).toEqual([0, 0, 0, 0]);
+    expect(s.sources.map((x) => x.count)).toEqual(SOURCES.map(() => 0));
     expect(s.severity).toEqual([1, 2, 3, 4, 5].map((severity) => ({ severity, count: 0 })));
     expect(Object.values(countByCategory([])).every((n) => n === 0)).toBe(true);
     expect(summarize([], "7d", NOW).timeline).toHaveLength(7);
@@ -139,6 +140,7 @@ describe("counts", () => {
       { source: "eonet", count: 2 },
       { source: "gdelt", count: 1 },
       { source: "rss", count: 0 },
+      ...SOURCES.slice(4).map((source) => ({ source, count: 0 })),
     ]);
   });
 

@@ -1,6 +1,6 @@
 // Shared domain types. This is the contract every ingester and UI module builds against.
 
-export const SOURCES = ["usgs", "eonet", "gdelt", "rss"] as const;
+export const SOURCES = ["usgs", "eonet", "gdelt", "rss", "gdacs", "who", "sports"] as const;
 export type Source = (typeof SOURCES)[number];
 
 export const CATEGORIES = [
@@ -13,6 +13,7 @@ export const CATEGORIES = [
   "politics",
   "economy",
   "health",
+  "sports",
   "other",
 ] as const;
 export type Category = (typeof CATEGORIES)[number];

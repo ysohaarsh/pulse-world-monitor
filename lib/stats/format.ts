@@ -45,4 +45,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   eonet: "NASA EONET",
   gdelt: "GDELT",
   rss: "News RSS",
+  gdacs: "GDACS",
+  who: "WHO",
+  sports: "Sports RSS",
 };

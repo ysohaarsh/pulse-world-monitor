@@ -19,7 +19,7 @@ Note: Next 16 renamed `middleware.ts` → `proxy.ts`, and `cookies()`/`params` a
 ## Module ownership (for parallel agents — stay inside your folders)
 | Agent | Owns |
 |---|---|
-| ingest-usgs / ingest-eonet / ingest-gdelt / ingest-rss | `lib/ingest/<source>.ts`, `lib/ingest/<source>.test.ts`, `lib/ingest/__fixtures__/<source>.*` |
+| ingest-<source> (usgs, eonet, gdelt, rss, gdacs, who, sports) | `lib/ingest/<source>.ts`, `lib/ingest/<source>.test.ts`, `lib/ingest/__fixtures__/<source>.*` |
 | ui-map | `components/map/**`, map half of `app/page.tsx` |
 | ui-feed | `components/feed/**`, feed half of `app/page.tsx`, `lib/events/**` (queries + realtime hook) |
 | ui-insights | `app/stats/**`, `app/brief/**`, `components/stats/**` |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { EventRow } from "@/lib/types";
+import { SOURCES, type EventRow } from "@/lib/types";
 import { summarizeSitrep, threatLabel } from "./sitrep";
 
 let id = 0;
@@ -31,7 +31,7 @@ describe("summarizeSitrep", () => {
     expect(s.threatLabel).toBe("LOW");
     expect(s.hotspots).toEqual([]);
     expect(s.priority).toEqual([]);
-    expect(s.bySource.map((x) => x.count)).toEqual([0, 0, 0, 0]);
+    expect(s.bySource.map((x) => x.count)).toEqual(SOURCES.map(() => 0));
   });
 
   it("scores threat from the most severe events", () => {

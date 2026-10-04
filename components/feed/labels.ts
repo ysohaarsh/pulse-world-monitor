@@ -6,6 +6,9 @@ export const SOURCE_LABEL: Record<Source, string> = {
   eonet: "NASA EONET",
   gdelt: "GDELT",
   rss: "RSS",
+  gdacs: "GDACS",
+  who: "WHO",
+  sports: "SPORTS",
 };
 
 export const WINDOW_LABEL: Record<TimeWindow, string> = {

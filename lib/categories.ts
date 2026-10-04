@@ -14,5 +14,6 @@ export const CATEGORY_META: Record<Category, { label: string; color: string }> =
   politics: { label: "Politics", color: "#ffd23f" },
   economy: { label: "Economy", color: "#2fe0ff" },
   health: { label: "Health", color: "#e879f9" },
+  sports: { label: "Sports", color: "#e6edf3" },
   other: { label: "Other", color: "#8aa898" },
 };
