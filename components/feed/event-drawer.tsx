@@ -5,7 +5,9 @@ import { format } from "date-fns";
 import { CATEGORY_META } from "@/lib/categories";
 import { safeHttpUrl } from "@/lib/url";
 import type { EventRow } from "@/lib/types";
+import { LEAN_META, outletForUrl } from "@/lib/media-lean";
 import { FOCUS_RING, SOURCE_LABEL } from "./labels";
+import { ALLSIDES_RATINGS_URL, LeanBadge } from "./lean-badge";
 import { SeverityPips } from "./severity-pips";
 
 
@@ -15,6 +17,7 @@ export function EventDrawer({ event, onClose }: { event: EventRow; onClose: () =
   const meta = CATEGORY_META[event.category];
   const occurred = new Date(event.occurred_at);
   const sourceUrl = safeHttpUrl(event.url);
+  const outlet = outletForUrl(event.url);
 
   // Focus the close button on open and restore focus to whatever was focused before on close.
   useEffect(() => {
@@ -70,6 +73,24 @@ export function EventDrawer({ event, onClose }: { event: EventRow; onClose: () =
           </dd>
           <dt className="text-muted">Source</dt>
           <dd className="font-mono">{SOURCE_LABEL[event.source]}</dd>
+          {outlet && (
+            <>
+              <dt className="text-muted">Outlet</dt>
+              <dd className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span>{outlet.outlet}</span>
+                <LeanBadge url={event.url} />
+                <a
+                  href={outlet.allsides}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-muted underline decoration-border-strong underline-offset-2 hover:text-accent ${FOCUS_RING}`}
+                >
+                  {LEAN_META[outlet.lean].label}
+                  <span className="sr-only"> — AllSides rating (opens in a new tab)</span>
+                </a>
+              </dd>
+            </>
+          )}
           <dt className="text-muted">Country</dt>
           <dd className="font-mono">{event.country ?? "—"}</dd>
           <dt className="text-muted">Coordinates</dt>
@@ -86,6 +107,21 @@ export function EventDrawer({ event, onClose }: { event: EventRow; onClose: () =
             <span className="block font-mono text-[10px] text-muted">{event.occurred_at}</span>
           </dd>
         </dl>
+        {outlet && (
+          <p className="mt-1.5 text-[10px] text-muted">
+            Outlet lean:{" "}
+            <a
+              href={ALLSIDES_RATINGS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`underline decoration-border-strong underline-offset-2 hover:text-accent ${FOCUS_RING}`}
+            >
+              AllSides ratings
+              <span className="sr-only"> (opens in a new tab)</span>
+            </a>{" "}
+            of the outlet overall, not this story.
+          </p>
+        )}
 
         {sourceUrl && (
           <a

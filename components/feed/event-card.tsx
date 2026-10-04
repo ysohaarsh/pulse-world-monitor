@@ -5,6 +5,7 @@ import { formatDistanceStrict } from "date-fns";
 import { CATEGORY_META } from "@/lib/categories";
 import type { EventRow } from "@/lib/types";
 import { FOCUS_RING, SOURCE_LABEL } from "./labels";
+import { LeanBadge } from "./lean-badge";
 import { SeverityPips } from "./severity-pips";
 
 /** Relative time against an explicit `now`, so server and client render the same string. */
@@ -53,6 +54,7 @@ export const EventCard = memo(function EventCard({
             {meta.label}
           </span>
           <span className="text-muted">[{SOURCE_LABEL[event.source]}]</span>
+          <LeanBadge url={event.url} />
           {event.country && <span className="text-foreground/80">{event.country}</span>}
           {fresh && <span className="blink font-bold text-accent">● NEW</span>}
           <time

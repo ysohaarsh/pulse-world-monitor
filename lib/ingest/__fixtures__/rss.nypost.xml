@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	xmlns:dcterms="http://purl.org/dc/terms/"
+		xmlns:media="http://search.yahoo.com/mrss/"
+	>
+
+<channel>
+	<title>World News – Latest Breaking Headlines, Photos, Videos | New York Post</title>
+	<atom:link href="https://nypost.com/world-news/feed/" rel="self" type="application/rss+xml" />
+	<link>https://nypost.com</link>
+	<description>Your source for breaking news, news about New York, sports, business, entertainment, opinion, real estate, culture, fashion, and more.</description>
+	<lastBuildDate>Sun, 04 Oct 2026 19:15:34 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>hourly</sy:updatePeriod>
+	<sy:updateFrequency>1</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=6.8.10</generator>
+<site xmlns="com-wordpress:feed-additions:1">163456144</site>		<item>
+		<title>Never-before-seen images from inside North Korea reveal haunting devastation of 90s famine</title>
+		<comments>https://nypost.com/2026/10/04/world-news/leaked-north-korea-images-show-never-before-seen-glimpse-of-90s-famine/#respond</comments>
+		<pubDate>Sun, 04 Oct 2026 15:12:01 -0400</pubDate>
+		<dcterms:modified>2026-10-04T15:15:34-04:00</dcterms:modified>
+						<link>https://nypost.com/2026/10/04/world-news/leaked-north-korea-images-show-never-before-seen-glimpse-of-90s-famine/</link>
+			<dc:creator>Amber Roldan, Ronny Reyes</dc:creator>
+		
+		<guid isPermaLink="false">https://nypost.com/?post_type=article&#038;p=41011889</guid>
+												<description><![CDATA[The images stand as one of the world's first looks into the famine that overtook North Korea following the breakup of the Soviet Union and collapse of the communist Public Distribution System, which provided food rations across the nation.]]></description>
+			<content:encoded><![CDATA[<p>(trimmed)</p>]]></content:encoded>
+								<enclosure url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fnewspress-collage-79m9kcrm0-1791132751706.jpg?quality%3D90%26strip%3Dall%261791118377"
+						type="image/jpeg"
+						length="299496"
+					/>
+							<slash:comments>0</slash:comments>
+			<post-id xmlns="com-wordpress:feed-additions:1">41011889</post-id>
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fone-time-use-story-no-143192403.jpg?w%3D1024" medium="image">
+			<media:title type="html">A malnourished child lies in a bed at a baby home in Pyongsong City, North Korea.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fchildren-ages-four-five-suffering-142752606.jpg?w%3D1024" medium="image">
+			<media:title type="html">Two young children, suffering from malnutrition, sitting on the floor in a nursery in North Korea.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fmisss-kathi-book-written-kathi-143486956.jpg?w%3D1024" medium="image">
+			<media:title type="html">Kathi Zellweger sitting outdoors with her book &#034;Miss Kathi&#034; in the foreground.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fsaving-lives-north-korea-boo-143211563-edited.jpg" medium="image">
+			<media:title type="html">Two young children stand in a sparse agricultural field in North Korea.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fseverly-malnourished-15-year-old-142752610.jpg?w%3D1024" medium="image">
+			<media:title type="html">A severely malnourished 15-year-old lies in a hospital bed in Wonsan City, North Korea.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fsaving-lives-north-korea-boo-143192407.jpg?w%3D1024" medium="image">
+			<media:title type="html">Two sick children lying on wooden beds in North Korea, with an IV drip visible.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fone-time-use-story-no-143483037.jpg?w%3D1024" medium="image">
+			<media:title type="html">A North Korean worker assembles an orthopedic prosthetic leg in a workshop.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fone-time-use-story-no-143192405.jpg?w%3D1024" medium="image">
+			<media:title type="html">Children sitting at long tables, eating meals from bowls.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fsaving-lives-north-korea-boo-143192416.jpg?w%3D1024" medium="image">
+			<media:title type="html">Swiss aid worker Kathi Zellweger and a group of people pose behind a table piled high with napa cabbages, preparing kimchi.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fone-time-use-story-no-143483038.jpg" medium="image">
+			<media:title type="html">Kathi Zellweger plays with residents at a care home for children in North Korea.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fmisss-kathi-book-written-kathi-143487036.jpg?w%3D1024" medium="image">
+			<media:title type="html">Kathi Zellweger and Mike Chinoy sitting together at a table, with Zellweger signing a copy of their book.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fsaving-lives-north-korea-boo-143192406.jpg?w%3D1024" medium="image">
+			<media:title type="html">A person stands among large stacks of food inside a cargo hold.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fyoung-children-nap-baby-home-142752611.jpg?w%3D1024" medium="image">
+			<media:title type="html">Young children napping in a baby home in Wonsan City, North Korea.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fauthor-mike-chinoy-author-publication-143215011.jpg?w%3D683" medium="image">
+			<media:title type="html">Book cover of &#034;Miss Kathi: Saving Lives in North Korea&#034; by Kathi Zellweger and Mike Chinoy, featuring a photo of Kathi Zellweger surrounded by North Korean children.</media:title>
+		</media:content>
+	</item>
+				<item>
+		<title>&#8216;Tinder Swindler&#8217; Simon Leviev launches scam-proof dating app: &#8216;I&#8217;ve paid my debts&#8217;</title>
+		<comments>https://nypost.com/2026/10/04/business/tinder-swindler-simon-leviev-launches-scam-proof-dating-app/#respond</comments>
+		<pubDate>Sun, 04 Oct 2026 11:58:42 -0400</pubDate>
+		<dcterms:modified>2026-10-04T11:58:45-04:00</dcterms:modified>
+						<link>https://nypost.com/2026/10/04/business/tinder-swindler-simon-leviev-launches-scam-proof-dating-app/</link>
+			<dc:creator>Fox News</dc:creator>
+		
+		<guid isPermaLink="false">https://nypost.com/?post_type=article&#038;p=41130712</guid>
+												<description><![CDATA["They say I made the dating environment unsafe. So I thought, ‘All right. Let’s make it safe.’"]]></description>
+			<content:encoded><![CDATA[<p>(trimmed)</p>]]></content:encoded>
+								<enclosure url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2F143733898.jpg?quality%3D90%26strip%3Dall"
+						type="image/jpeg"
+						length="785281"
+					/>
+							<slash:comments>0</slash:comments>
+			<post-id xmlns="com-wordpress:feed-additions:1">41130712</post-id>
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2F2019-said-arrested-israeli-man-143733584.jpg?w%3D1024" medium="image">
+			<media:title type="html">Simon Hayut, also known as the &#034;Tinder swindler,&#034; walking outdoors with a man holding his arm.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fsimon-leviev-aka-tinder-swindler-143733796.jpg?w%3D768" medium="image">
+			<media:title type="html">Simon Leviev, also known as the Tinder Swindler, sitting in the back of a car.</media:title>
+		</media:content>
+
+		<media:content url="https://nypost.com/wp-content%2Fuploads%2Fsites%2F2%2F2026%2F10%2Fsimon-leviev-aka-tinder-swindler-143733618.jpg?w%3D1024" medium="image">
+			<media:title type="html">Simon Leviev, also known as the Tinder Swindler, sits on a private jet with a laptop and champagne.</media:title>
+		</media:content>
+	</item>
+</channel></rss>
