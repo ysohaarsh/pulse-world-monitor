@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SOURCES } from "@/lib/types";
+import { CORE_SOURCES } from "@/lib/events/sports";
 import {
   categoryShares,
   countByCategory,
@@ -35,7 +35,7 @@ describe("empty input", () => {
     expect(s.countries).toEqual([]);
     expect(s.timeline).toHaveLength(24);
     expect(s.timeline.every((b) => b.total === 0)).toBe(true);
-    expect(s.sources.map((x) => x.count)).toEqual(SOURCES.map(() => 0));
+    expect(s.sources.map((x) => x.count)).toEqual(CORE_SOURCES.map(() => 0));
     expect(s.severity).toEqual([1, 2, 3, 4, 5].map((severity) => ({ severity, count: 0 })));
     expect(Object.values(countByCategory([])).every((n) => n === 0)).toBe(true);
     expect(summarize([], "7d", NOW).timeline).toHaveLength(7);
@@ -140,12 +140,30 @@ describe("counts", () => {
       { source: "eonet", count: 2 },
       { source: "gdelt", count: 1 },
       { source: "rss", count: 0 },
-      ...SOURCES.slice(4).map((source) => ({ source, count: 0 })),
+      ...CORE_SOURCES.slice(4).map((source) => ({ source, count: 0 })),
     ]);
   });
 
   it("builds severity distribution and KPIs", () => {
     expect(severityDistribution(events).map((s) => s.count)).toEqual([1, 2, 1, 1, 1]);
     expect(kpis(events)).toEqual({ total: 6, highSeverity: 2, countries: 3, topCategory: "earthquake" });
+  });
+});
+
+describe("sports exclusion", () => {
+  it("leaves sports out of every figure", () => {
+    const core = [ev({ category: "flood", country: "PK", severity: 4 }), ev({ source: "rss", category: "conflict" })];
+    const sports = [
+      ...Array.from({ length: 5 }, () => ev({ category: "sports", source: "sports", severity: 1, country: "GB" })),
+      ev({ category: "sports", source: "rss" }),
+      ev({ category: "other", source: "sports" }),
+    ];
+    const s = summarize([...core, ...sports], "24h", NOW);
+    expect(s).toEqual(summarize(core, "24h", NOW));
+    expect(s.kpis.total).toBe(2);
+    expect(s.categories.map((c) => c.category)).not.toContain("sports");
+    expect(s.sources.map((x) => x.source)).not.toContain("sports");
+    expect(s.countries.map((c) => c.country)).not.toContain("GB");
+    expect(s.timeline.every((b) => b.sports === 0)).toBe(true);
   });
 });

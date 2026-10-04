@@ -1,7 +1,8 @@
 // Pure aggregation helpers for the /stats page. No I/O, no local-timezone math:
 // every bucket boundary is computed in UTC so results are identical on any server.
 import { CATEGORY_META } from "@/lib/categories";
-import { CATEGORIES, SOURCES, type Category, type EventRow, type Source } from "@/lib/types";
+import { CORE_SOURCES, withoutSports } from "@/lib/events/sports";
+import { CATEGORIES, type Category, type EventRow, type Source } from "@/lib/types";
 
 export type StatsEvent = Pick<EventRow, "category" | "severity" | "country" | "source" | "occurred_at">;
 
@@ -131,9 +132,9 @@ export interface SourceCount {
   count: number;
 }
 
-/** All known sources (zero-filled), sorted by count desc. */
+/** All known non-sports sources (zero-filled), sorted by count desc. */
 export function countBySource(events: readonly StatsEvent[]): SourceCount[] {
-  const counts = new Map<Source, number>(SOURCES.map((s) => [s, 0]));
+  const counts = new Map<Source, number>(CORE_SOURCES.map((s) => [s, 0]));
   for (const e of events) {
     if (counts.has(e.source)) counts.set(e.source, counts.get(e.source)! + 1);
   }
@@ -187,7 +188,9 @@ export interface StatsSummary {
   severity: SeverityCount[];
 }
 
-export function summarize(events: readonly StatsEvent[], window: StatsWindow, now: Date = new Date()): StatsSummary {
+/** Everything /stats shows. Sports (an opt-in side feed) is excluded from every figure. */
+export function summarize(all: readonly StatsEvent[], window: StatsWindow, now: Date = new Date()): StatsSummary {
+  const events = withoutSports(all);
   return {
     window,
     kpis: kpis(events),

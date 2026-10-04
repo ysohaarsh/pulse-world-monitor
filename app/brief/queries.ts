@@ -56,7 +56,7 @@ export async function fetchWorldBriefs(selectedId: number | null): Promise<Brief
   }
 }
 
-/** The 10 most severe events in [start, end], most recent first within a severity level. */
+/** The 10 most severe non-sports events in [start, end], most recent first within a severity level. */
 export async function fetchTopEvents(
   start: string,
   end: string,
@@ -69,6 +69,9 @@ export async function fetchTopEvents(
       .select("id, title, category, severity, occurred_at, url, country, source")
       .gte("occurred_at", start)
       .lte("occurred_at", end)
+      // Sports is an opt-in side feed and never a "top event" of a World Brief.
+      .neq("category", "sports")
+      .neq("source", "sports")
       .order("severity", { ascending: false })
       .order("occurred_at", { ascending: false })
       .limit(limit);

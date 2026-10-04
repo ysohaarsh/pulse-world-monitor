@@ -1,3 +1,4 @@
+import { isSportsEvent } from "@/lib/events/sports";
 import type { BriefEvent } from "./types";
 
 export interface SelectOptions {
@@ -51,6 +52,7 @@ export function compareImportance(a: BriefEvent, b: BriefEvent): number {
  * Pick the most important events for a brief: ordered by severity then recency,
  * with per-category and per-source caps so no single feed dominates, and with
  * near-identical titles (the same story from several outlets) collapsed.
+ * Sports items (an opt-in side feed) are never picked.
  * Pure; does not mutate its input.
  */
 export function selectEvents(events: readonly BriefEvent[], options: SelectOptions = {}): BriefEvent[] {
@@ -61,6 +63,7 @@ export function selectEvents(events: readonly BriefEvent[], options: SelectOptio
 
   for (const e of [...events].sort(compareImportance)) {
     if (picked.length >= max) break;
+    if (isSportsEvent(e)) continue;
     if ((byCategory.get(e.category) ?? 0) >= perCategory) continue;
     if ((bySource.get(e.source) ?? 0) >= perSource) continue;
     if (picked.some((p) => isNearDuplicate(p.title, e.title))) continue;

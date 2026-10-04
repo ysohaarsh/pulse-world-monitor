@@ -62,6 +62,22 @@ test.describe("home", () => {
     ).toHaveCount(0);
   });
 
+  test("sports is opt-in: hidden by default and its chip is not pressed", async ({ page }) => {
+    await page.goto("/");
+    const categories = feed(page).getByRole("group", { name: "Categories" });
+    await expect(categories.getByRole("button", { name: "Sports (opt-in) events" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    // "All" means every non-sports category, so it is pressed by default.
+    await expect(categories.getByRole("button", { name: /^All categories/ })).toHaveAttribute("aria-pressed", "true");
+
+    await waitForFeed(page);
+    const list = feed(page).getByRole("list", { name: "Event feed" });
+    await expect(list.getByText("Sports", { exact: true })).toHaveCount(0);
+    await expect(list.getByText("[SPORTS]", { exact: true })).toHaveCount(0);
+  });
+
   test("clicking a feed item opens the drawer; Esc closes it", async ({ page }) => {
     skipWithoutDb();
     // Widest window so there is something to click even on a quiet day.

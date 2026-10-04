@@ -1,8 +1,9 @@
 import "server-only";
-import { CATEGORIES, SOURCES, type EventRow } from "@/lib/types";
+import type { EventRow } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
-import { type EventFilters, windowStart } from "./filters";
+import { type EventFilters, sportsEnabled, windowStart } from "./filters";
 import { EVENT_COLUMNS, toEventRow } from "./row";
+import { CORE_CATEGORIES, CORE_SOURCES } from "./sports";
 
 export const EVENTS_LIMIT = 500;
 
@@ -27,8 +28,20 @@ export async function getRecentEvents(
       .order("occurred_at", { ascending: false })
       .limit(EVENTS_LIMIT);
 
-    if (filters.categories.length < CATEGORIES.length) query = query.in("category", filters.categories);
-    if (filters.sources.length < SOURCES.length) query = query.in("source", filters.sources);
+    // Same semantics as matchesFilters: core events by category AND source; sports items only
+    // when opted in. Always constrained, so sports never leaks into the default view.
+    const core = CORE_CATEGORIES.filter((c) => filters.categories.includes(c));
+    const sources = CORE_SOURCES.filter((s) => filters.sources.includes(s));
+    const coreSources = sources.length > 0 ? sources : CORE_SOURCES;
+    if (sportsEnabled(filters)) {
+      const clauses = ["category.eq.sports", "source.eq.sports"];
+      if (core.length > 0) clauses.push(`and(category.in.(${core.join(",")}),source.in.(${coreSources.join(",")}))`);
+      query = query.or(clauses.join(","));
+    } else {
+      query = query
+        .in("category", core.length > 0 ? core : [...CORE_CATEGORIES])
+        .in("source", [...coreSources]);
+    }
 
     const { data, error } = await query;
     if (error) {

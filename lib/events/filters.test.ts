@@ -6,9 +6,13 @@ import {
   filtersKey,
   matchesFilters,
   parseFilters,
+  selectAllCategories,
   serializeFilters,
+  sportsEnabled,
+  toggleCategory,
   toggleValue,
 } from "./filters";
+import { CORE_CATEGORIES, CORE_SOURCES } from "./sports";
 import { mergeIncoming } from "./merge";
 import { toEventRow } from "./row";
 
@@ -57,7 +61,7 @@ describe("parseFilters", () => {
   it("ignores junk and clamps severity", () => {
     const f = parseFilters({ cat: "nope,,FLOOD", src: "twitter", sev: "99", win: "3d" });
     expect(f.categories).toEqual(["flood"]);
-    expect(f.sources).toEqual([...SOURCES]);
+    expect(f.sources).toEqual([...CORE_SOURCES]);
     expect(f.minSeverity).toBe(5);
     expect(f.window).toBe("24h");
     expect(parseFilters({ sev: "-2" }).minSeverity).toBe(1);
@@ -65,7 +69,7 @@ describe("parseFilters", () => {
   });
 
   it("treats an empty list as all", () => {
-    expect(parseFilters({ cat: "" }).categories).toEqual([...CATEGORIES]);
+    expect(parseFilters({ cat: "" }).categories).toEqual([...CORE_CATEGORIES]);
   });
 });
 
@@ -113,6 +117,77 @@ describe("matchesFilters", () => {
     expect(matchesFilters(ev({ occurred_at: "2026-10-04T11:00:00Z" }), f, NOW)).toBe(true);
     expect(matchesFilters(ev({ occurred_at: "2026-10-04T10:59:59Z" }), f, NOW)).toBe(false);
     expect(matchesFilters(ev({ occurred_at: "not a date" }), f, NOW)).toBe(false);
+  });
+});
+
+describe("sports opt-in", () => {
+  const sportsEv = ev({ source: "sports", category: "sports", severity: 1, country: null, lat: null, lng: null });
+
+  it("is hidden by default: defaults exclude the sports category and source", () => {
+    expect(DEFAULT_FILTERS.categories).not.toContain("sports");
+    expect(DEFAULT_FILTERS.sources).not.toContain("sports");
+    expect(DEFAULT_FILTERS.categories).toEqual(CATEGORIES.filter((c) => c !== "sports"));
+    expect(DEFAULT_FILTERS.sources).toEqual(SOURCES.filter((s) => s !== "sports"));
+    expect(sportsEnabled(DEFAULT_FILTERS)).toBe(false);
+    expect(matchesFilters(sportsEv, DEFAULT_FILTERS, NOW)).toBe(false);
+    // Anything sports-flavoured stays hidden, whichever field says so.
+    expect(matchesFilters(ev({ category: "sports" }), DEFAULT_FILTERS, NOW)).toBe(false);
+    expect(matchesFilters(ev({ source: "sports" }), DEFAULT_FILTERS, NOW)).toBe(false);
+  });
+
+  it("keeps old links meaning exactly what they did", () => {
+    expect(parseFilters({}).categories).not.toContain("sports");
+    expect(parseFilters({ cat: "flood,storm" }).categories).toEqual(["storm", "flood"]);
+    expect(parseFilters({ src: "rss" }).sources).toEqual(["rss"]);
+  });
+
+  it("shows sports alongside everything else when opted in", () => {
+    const f = parseFilters({ sports: "1" });
+    expect(sportsEnabled(f)).toBe(true);
+    expect(f.categories).toEqual([...CATEGORIES]);
+    expect(f.sources).toEqual([...CORE_SOURCES]);
+    expect(matchesFilters(sportsEv, f, NOW)).toBe(true);
+    expect(matchesFilters(ev(), f, NOW)).toBe(true);
+    // Source chips don't hide sports; severity and window still apply.
+    expect(matchesFilters(sportsEv, { ...f, sources: ["usgs"] }, NOW)).toBe(true);
+    expect(matchesFilters(sportsEv, { ...f, minSeverity: 2 }, NOW)).toBe(false);
+    expect(matchesFilters({ ...sportsEv, occurred_at: "2026-10-01T00:00:00Z" }, f, NOW)).toBe(false);
+  });
+
+  it("round-trips sports on through the URL", () => {
+    const on: EventFilters = { ...DEFAULT_FILTERS, categories: [...CATEGORIES] };
+    expect(serializeFilters(on).toString()).toBe("sports=1");
+    expect(parseFilters(serializeFilters(on))).toEqual(on);
+
+    const partial: EventFilters = { ...DEFAULT_FILTERS, categories: ["flood", "sports"], window: "7d" };
+    expect(serializeFilters(partial).toString()).toBe("cat=flood&sports=1&win=7d");
+    expect(parseFilters(serializeFilters(partial))).toEqual(partial);
+
+    const only: EventFilters = { ...DEFAULT_FILTERS, categories: ["sports"] };
+    expect(serializeFilters(only).toString()).toBe("cat=sports");
+    expect(parseFilters(serializeFilters(only))).toEqual(only);
+    expect(matchesFilters(sportsEv, only, NOW)).toBe(true);
+    expect(matchesFilters(ev(), only, NOW)).toBe(false);
+  });
+
+  it("accepts lenient spellings and canonicalizes them", () => {
+    expect(parseFilters({ cat: "sports,flood" }).categories).toEqual(["flood", "sports"]);
+    expect(parseFilters({ cat: "flood", sports: "true" }).categories).toEqual(["flood", "sports"]);
+    expect(parseFilters({ sports: "0" }).categories).toEqual([...CORE_CATEGORIES]);
+    expect(parseFilters({ src: "sports" }).sources).toEqual([...CORE_SOURCES]);
+    expect(filtersKey(parseFilters({ cat: "sports,flood" }))).toBe("cat=flood&sports=1");
+  });
+
+  it("toggles categories within the core set and keeps the sports flag", () => {
+    const core = [...CORE_CATEGORIES];
+    expect(toggleCategory(core, "sports")).toEqual([...CATEGORIES]);
+    expect(toggleCategory([...CATEGORIES], "sports")).toEqual(core);
+    expect(toggleCategory(["flood", "sports"], "storm")).toEqual(["storm", "flood", "sports"]);
+    expect(toggleCategory(["flood", "sports"], "flood")).toEqual(["sports"]); // sports-only view
+    expect(toggleCategory(["sports"], "sports")).toEqual(core); // never empty
+    expect(toggleCategory(["flood"], "flood")).toEqual(core); // reset to all core, not to sports
+    expect(selectAllCategories(["flood"])).toEqual(core);
+    expect(selectAllCategories(["flood", "sports"])).toEqual([...CATEGORIES]);
   });
 });
 

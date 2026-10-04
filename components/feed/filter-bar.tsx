@@ -1,8 +1,16 @@
 "use client";
 
 import { CATEGORY_META } from "@/lib/categories";
-import { CATEGORIES, SOURCES, type Severity } from "@/lib/types";
-import { type EventFilters, TIME_WINDOWS, toggleValue } from "@/lib/events/filters";
+import type { Severity } from "@/lib/types";
+import {
+  type EventFilters,
+  selectAllCategories,
+  sportsEnabled,
+  TIME_WINDOWS,
+  toggleCategory,
+  toggleValue,
+} from "@/lib/events/filters";
+import { CORE_CATEGORIES, CORE_SOURCES } from "@/lib/events/sports";
 import { FOCUS_RING, SOURCE_LABEL, WINDOW_LABEL } from "./labels";
 
 const CHIP =
@@ -22,7 +30,10 @@ export function FilterBar({
   filters: EventFilters;
   onChange: (next: EventFilters) => void;
 }) {
-  const allCategories = filters.categories.length === CATEGORIES.length;
+  // "All" = every non-sports category. Sports is a separate opt-in toggle (hidden by default and
+  // never counted in the threat index, stats or brief), so it sits apart after a divider.
+  const allCategories = CORE_CATEGORIES.every((c) => filters.categories.includes(c));
+  const sports = sportsEnabled(filters);
 
   return (
     <div className="flex flex-col gap-2 border-b border-border bg-background/40 px-3 py-2.5">
@@ -30,12 +41,13 @@ export function FilterBar({
         <button
           type="button"
           aria-pressed={allCategories}
-          onClick={() => onChange({ ...filters, categories: [...CATEGORIES] })}
+          aria-label="All categories (except sports)"
+          onClick={() => onChange({ ...filters, categories: selectAllCategories(filters.categories) })}
           className={`${CHIP} ${chipState(allCategories)}`}
         >
           All
         </button>
-        {CATEGORIES.map((c) => {
+        {CORE_CATEGORIES.map((c) => {
           const pressed = filters.categories.includes(c);
           return (
             <button
@@ -43,7 +55,7 @@ export function FilterBar({
               type="button"
               aria-pressed={pressed}
               aria-label={`${CATEGORY_META[c].label} events`}
-              onClick={() => onChange({ ...filters, categories: toggleValue(filters.categories, c, CATEGORIES) })}
+              onClick={() => onChange({ ...filters, categories: toggleCategory(filters.categories, c) })}
               className={`${CHIP} ${chipState(pressed)}`}
             >
               <span
@@ -58,6 +70,26 @@ export function FilterBar({
             </button>
           );
         })}
+        <span aria-hidden className="mx-0.5 w-px self-stretch bg-border-strong" />
+        <button
+          type="button"
+          aria-pressed={sports}
+          aria-label="Sports (opt-in) events"
+          title="Sports headlines are hidden by default and never count toward the threat index, stats or brief"
+          onClick={() => onChange({ ...filters, categories: toggleCategory(filters.categories, "sports") })}
+          className={`${CHIP} border-dashed ${chipState(sports)}`}
+        >
+          <span
+            aria-hidden
+            className="h-1.5 w-1.5"
+            style={{
+              backgroundColor: CATEGORY_META.sports.color,
+              boxShadow: sports ? `0 0 5px ${CATEGORY_META.sports.color}` : undefined,
+            }}
+          />
+          {CATEGORY_META.sports.label}
+          <span className="normal-case tracking-normal opacity-70">(opt-in)</span>
+        </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -99,14 +131,14 @@ export function FilterBar({
 
       <div role="group" aria-label="Sources" className="flex flex-wrap items-center gap-1.5">
         <span className="text-[10px] uppercase tracking-wider text-muted">Src</span>
-        {SOURCES.map((s) => {
+        {CORE_SOURCES.map((s) => {
           const pressed = filters.sources.includes(s);
           return (
             <button
               key={s}
               type="button"
               aria-pressed={pressed}
-              onClick={() => onChange({ ...filters, sources: toggleValue(filters.sources, s, SOURCES) })}
+              onClick={() => onChange({ ...filters, sources: toggleValue(filters.sources, s, CORE_SOURCES) })}
               className={`${CHIP} ${chipState(pressed)}`}
             >
               {SOURCE_LABEL[s]}
