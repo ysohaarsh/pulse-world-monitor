@@ -34,3 +34,17 @@ If you truly need to touch a shared file (`lib/types.ts`, `package.json`, `app/l
 - Map: MapLibre GL v6 globe + OpenFreeMap vector tiles (keyless), style in `components/map/pulse-style.ts`. Its worker is served from `public/maplibre/` (copied by `scripts/copy-maplibre-worker.mjs` in `predev`/`prebuild`; gitignored) — don't import the worker through the bundler.
 - Validate external API payloads with zod inside `normalize`; skip bad items instead of throwing.
 - Tests: Vitest, colocated `*.test.ts`, run against saved fixtures — no network in unit tests.
+
+## Status (2026-10-05) — read this first in a new session
+Live: https://pulse-world-monitor.vercel.app (Vercel auto-deploys `main`). Repo: github.com/ysohaarsh/pulse-world-monitor (public).
+Supabase project `ckhzvkfkmpuenmfvipew`; pg_cron jobs `pulse-ingest` (10 min), `pulse-brief` (00:15 UTC), `pulse-prune`; app URL + cron secret live in Supabase Vault (`pulse_app_url`, `pulse_cron_secret`) and Vercel env (sensitive). Never print/read production secrets — ask the user to copy them (pbcopy).
+Sources: usgs, eonet, gdelt (15-min export files, not the DOC API), rss (15 feeds with AllSides lean in `lib/media-lean.ts`), gdacs, who, sports (opt-in, hidden by default).
+Git author must stay the GitHub noreply address.
+
+### Open items
+1. GDELT quality: `categorize()` forces non-hazard titles to conflict/politics (e.g. economy stories → conflict); GDELT geocoder mixes same-name places (Georgia US → Austria). Consider carrying over classify() economy/politics and dropping events whose country isn't mentioned in the title.
+2. AI brief: Groq retired `llama-3.3-70b-versatile` on free tier (2026-08-16). Switch default to `openai/gpt-oss-120b` (raise max_tokens ~2000 or reasoning_effort "low"), add ordered fallback provider (Cloudflare Workers AI `@cf/meta/llama-3.3-70b-instruct-fp8-fast`), surface when brief falls back to "extractive". User must add LLM_API_KEY in Vercel.
+3. Password reset links only work in the requesting browser (PKCE). For cross-device: Supabase "Reset Password" email template → `<a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=recovery">`.
+4. Dependabot PRs #1–#4 failing CI (TS 7, ESLint 10, @types/node 26 majors + a minor/patch group) — triage or configure to ignore majors.
+5. Before real users: custom SMTP in Supabase Auth; consider CAPTCHA on signup.
+6. Rows ingested before the lean change have no `#publisher=` fragment → no lean badge until re-fetched (self-heals).
