@@ -34,7 +34,7 @@ export default async function BriefPage({
         <div className="flex min-w-0 flex-col gap-6">
           <header>
             <h1 className="text-xl font-semibold">World Brief</h1>
-            <p className="text-sm text-muted">An AI-written summary of what happened around the world.</p>
+            <p className="text-sm text-muted">A daily summary of what happened around the world.</p>
           </header>
 
           {error && (
@@ -85,9 +85,9 @@ export default async function BriefPage({
               <section className="rounded-lg border border-dashed border-border bg-surface p-5">
                 <h2 className="font-semibold">No brief yet</h2>
                 <p className="mt-2 text-sm text-muted">
-                  World Briefs are generated once a day by an AI model that reads the latest events and summarizes the
-                  most important developments. The first brief will appear here once an LLM API key is configured and
-                  the daily job has run.
+                  A World Brief is generated once a day from the latest events — written by an AI model when one is
+                  configured, otherwise as an automatic digest of the top stories. The first brief will appear here
+                  after the daily job runs.
                 </p>
                 <p className="mt-2 text-sm text-muted">
                   In the meantime, here are the most severe events from the last 24 hours.
