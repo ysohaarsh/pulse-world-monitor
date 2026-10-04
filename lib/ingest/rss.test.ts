@@ -4,7 +4,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cleanTitle,
   decodeEntities,
+  feedCaps,
   MAX_ITEMS_PER_FEED,
+  MAX_ITEMS_PER_LEAN,
   parseFeedDate,
   parseRss,
   RSS_FEEDS,
@@ -12,6 +14,7 @@ import {
   toSummary,
   type RssFeedRaw,
 } from "./rss";
+import { leanForUrl, MEDIA_LEAN, MEDIA_LEANS } from "@/lib/media-lean";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "__fixtures__", name), "utf8");
 
@@ -194,8 +197,10 @@ describe("rssIngester.fetchRaw", () => {
       }),
     );
     const raw = await rssIngester.fetchRaw();
-    expect(raw.map((r) => r.feed)).toEqual(["bbc", "aljazeera", "dw", "france24", "crisisgroup", "reuters"]);
-    expect(RSS_FEEDS).toHaveLength(9);
+    expect(raw.map((r) => r.feed)).toEqual(
+      RSS_FEEDS.map((f) => f.feed).filter((f) => !["npr", "guardian", "ap"].includes(f)),
+    );
+    expect(RSS_FEEDS).toHaveLength(15);
   });
 
   it("configures every feed over https with a unique name", () => {
@@ -277,7 +282,7 @@ describe("new feeds", () => {
     expect(reuters[0]).toMatchObject({ summary: null, country: "SA", occurred_at: "2026-10-04T08:03:13.000Z" });
     for (const e of reuters) {
       expect(e.external_id).toMatch(/^reuters:CBMi/);
-      expect(e.url).toMatch(/^https:\/\/news\.google\.com\/rss\/articles\//);
+      expect(e.url).toMatch(/^https:\/\/news\.google\.com\/rss\/articles\/.*#publisher=reuters\.com$/);
       expect(e.title).not.toMatch(/ - Reuters$/);
     }
 
@@ -338,5 +343,187 @@ describe("new feeds", () => {
     ]);
     expect(events).toHaveLength(10 + 3 + 2 + 2 + 3 + 2);
     expect(new Set(events.map((e) => e.external_id)).size).toBe(events.length);
+  });
+});
+
+describe("outlet lean", () => {
+  it("gives every feed a lean that matches the AllSides table for its domain", () => {
+    for (const f of RSS_FEEDS) {
+      expect(f).toHaveProperty("lean");
+      if (f.lean === null) {
+        // Unrated outlets (France 24, Crisis Group) must not be in the table either.
+        expect(MEDIA_LEAN[f.domain]).toBeUndefined();
+      } else {
+        expect(MEDIA_LEANS).toContain(f.lean);
+        expect(MEDIA_LEAN[f.domain]?.lean).toBe(f.lean);
+      }
+    }
+  });
+
+  it("covers every lean bucket with at least two feeds", () => {
+    for (const lean of MEDIA_LEANS) {
+      expect(RSS_FEEDS.filter((f) => f.lean === lean).length, lean).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("derives each rated feed's lean from its normalized event URLs", () => {
+    const cases: [string, string][] = [
+      ["guardian", "rss.guardian.xml"],
+      ["huffpost", "rss.huffpost.xml"],
+      ["vox", "rss.vox.xml"],
+      ["npr", "rss.npr.xml"],
+      ["aljazeera", "rss.aljazeera.xml"],
+      ["ap", "rss.googlenews-ap.xml"],
+      ["bbc", "rss.bbc.xml"],
+      ["dw", "rss.dw.xml"],
+      ["reuters", "rss.googlenews-reuters.xml"],
+      ["washtimes", "rss.washtimes.xml"],
+      ["washex", "rss.googlenews-washex.xml"],
+      ["foxnews", "rss.foxnews.xml"],
+      ["nypost", "rss.nypost.xml"],
+    ];
+    expect(cases).toHaveLength(RSS_FEEDS.filter((f) => f.lean !== null).length);
+    for (const [feed, file] of cases) {
+      const config = RSS_FEEDS.find((f) => f.feed === feed)!;
+      const events = rssIngester.normalize([{ feed, xml: fixture(file) }]);
+      expect(events.length, feed).toBeGreaterThan(0);
+      for (const e of events) expect(leanForUrl(e.url), `${feed} ${e.url}`).toBe(config.lean);
+    }
+  });
+});
+
+describe("Atom feeds (Vox)", () => {
+  it("parses <entry> elements: alternate link, id, published date", () => {
+    const items = parseRss(fixture("rss.vox.xml"));
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({
+      title: "America leaves Iraq, again",
+      link: "https://www.vox.com/today-explained-newsletter/504742/us-troops-withdraw-iraq",
+      guid: "https://www.vox.com/504742/tex-nl-site-template",
+      pubDate: "2026-09-30T17:00:00-04:00",
+      source: null,
+    });
+  });
+
+  it("normalizes Vox entries", () => {
+    const events = rssIngester.normalize([{ feed: "vox", xml: fixture("rss.vox.xml") }]);
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      title: "America leaves Iraq, again",
+      url: "https://www.vox.com/today-explained-newsletter/504742/us-troops-withdraw-iraq",
+      occurred_at: "2026-09-30T21:00:00.000Z",
+    });
+    expect(events[0].summary).toMatch(/^This story appeared in/);
+    expect(events[0].summary).not.toMatch(/&#160;|</);
+  });
+
+  it("falls back to <updated>, <content> and a rel-less <link>", () => {
+    const xml = `<feed xmlns="http://www.w3.org/2005/Atom"><link rel="self" href="https://ex.com/feed"/>
+      <entry><title>Quake hits Chile</title><link rel="enclosure" href="https://ex.com/a.jpg"/><link href="https://ex.com/a"/>
+      <id>tag:ex.com,2026:a</id><updated>2026-10-04T08:00:00Z</updated><content type="html">&lt;p&gt;Body&lt;/p&gt;</content></entry>
+    </feed>`;
+    const [item] = parseRss(xml);
+    expect(item).toMatchObject({
+      link: "https://ex.com/a",
+      pubDate: "2026-10-04T08:00:00Z",
+      description: "<p>Body</p>",
+      guid: "tag:ex.com,2026:a",
+    });
+  });
+});
+
+describe("new feed fixtures", () => {
+  const norm = (feed: string, file: string) => rssIngester.normalize([{ feed, xml: fixture(file) }]);
+
+  it("parses Washington Times (CDATA links)", () => {
+    const events = norm("washtimes", "rss.washtimes.xml");
+    expect(events).toHaveLength(2);
+    expect(events[0].title).toBe(
+      "Hegseth teases removal of U.S. troops from Europe to bolster military presence in Latin America",
+    );
+    expect(events[0].url).toBe(
+      "https://www.washingtontimes.com/news/2026/oct/4/pete-hegseth-teases-removal-us-troops-europe-bolster-military/",
+    );
+    expect(events[0].summary).toMatch(/^Defense Secretary Pete Hegseth/);
+  });
+
+  it("parses Fox News, New York Post and HuffPost", () => {
+    const fox = norm("foxnews", "rss.foxnews.xml");
+    expect(fox).toHaveLength(2);
+    expect(fox.every((e) => e.url!.startsWith("https://www.foxnews.com/world/"))).toBe(true);
+    expect(fox[1].title).toBe(
+      "US Marine arrested in Japan over suspected killing of woman as Tokyo lodges 'strong protest'",
+    );
+
+    const nypost = norm("nypost", "rss.nypost.xml");
+    const korea = nypost.find((e) => e.title.startsWith("Never-before-seen images from inside North Korea"))!;
+    expect(korea.country).toBe("KP");
+
+    const huff = norm("huffpost", "rss.huffpost.xml");
+    expect(huff).toHaveLength(2);
+    expect(huff[0].external_id).toBe(
+      "https://www.huffpost.com/entry/strait-of-hormuz-closure_n_6ac24247e4b0bc90e3ff8ae5",
+    );
+  });
+
+  it("parses the Washington Examiner Google News feed and tags its publisher", () => {
+    expect(parseRss(fixture("rss.googlenews-washex.xml"))[0].sourceUrl).toBe("https://www.washingtonexaminer.com");
+    const events = norm("washex", "rss.googlenews-washex.xml");
+    expect(events).toHaveLength(2);
+    expect(events[0].title).toBe(
+      "Arab parties set up for kingmaker role in Israeli election despite Netanyahu’s move to ban them",
+    );
+    for (const e of events) {
+      expect(e.external_id).toMatch(/^washex:CBMi/);
+      expect(e.url).toMatch(/^https:\/\/news\.google\.com\/rss\/articles\/.+\?oc=5#publisher=washingtonexaminer\.com$/);
+      expect(e.summary).toBeNull();
+    }
+  });
+
+  it("falls back to the configured domain when a Google News item has no <source url>", () => {
+    const xml = `<rss><channel><item><title>Story - Reuters</title><link>https://news.google.com/rss/articles/abc?oc=5</link>
+      <guid>abc</guid><pubDate>Sun, 04 Oct 2026 08:00:00 GMT</pubDate></item></channel></rss>`;
+    const [e] = rssIngester.normalize([{ feed: "reuters", xml }]);
+    expect(e.url).toBe("https://news.google.com/rss/articles/abc?oc=5#publisher=reuters.com");
+    expect(leanForUrl(e.url)).toBe("center");
+  });
+});
+
+describe("per-lean balance", () => {
+  const many = (domain: string, n: number) =>
+    `<rss><channel>${Array.from(
+      { length: n },
+      (_, i) =>
+        `<item><title>${domain} story ${i}</title><link>https://www.${domain}/${i}</link>` +
+        `<pubDate>${new Date(Date.UTC(2026, 9, 1, 0, i)).toUTCString()}</pubDate></item>`,
+    ).join("")}</channel></rss>`;
+
+  it("splits each bucket's budget between the feeds present", () => {
+    const caps = feedCaps(["guardian", "huffpost", "vox", "npr", "foxnews", "france24", "crisisgroup", "unknown"]);
+    expect(caps.get("guardian")).toBe(Math.floor(MAX_ITEMS_PER_LEAN / 3));
+    expect(caps.get("vox")).toBe(Math.floor(MAX_ITEMS_PER_LEAN / 3));
+    // Alone in its bucket this run: only the per-feed cap applies.
+    expect(caps.get("npr")).toBe(MAX_ITEMS_PER_FEED);
+    expect(caps.get("foxnews")).toBe(MAX_ITEMS_PER_FEED);
+    // Unrated feeds share their own bucket; unconfigured feeds get the plain per-feed cap.
+    expect(caps.get("france24")).toBe(Math.min(MAX_ITEMS_PER_FEED, Math.floor(MAX_ITEMS_PER_LEAN / 2)));
+    expect(caps.get("unknown")).toBe(MAX_ITEMS_PER_FEED);
+  });
+
+  it("keeps every bucket within MAX_ITEMS_PER_LEAN in a full run", () => {
+    const raw: RssFeedRaw[] = RSS_FEEDS.filter((f) => !f.googleNews).map((f) => ({
+      feed: f.feed,
+      xml: many(f.domain, 60),
+    }));
+    const events = rssIngester.normalize(raw);
+    const byBucket = new Map<string, number>();
+    for (const e of events) {
+      const lean = leanForUrl(e.url) ?? "unrated";
+      byBucket.set(lean, (byBucket.get(lean) ?? 0) + 1);
+    }
+    expect(byBucket.size).toBe(MEDIA_LEANS.length + 1);
+    for (const [bucket, n] of byBucket) expect(n, bucket).toBeLessThanOrEqual(MAX_ITEMS_PER_LEAN);
+    // Left has 3 feeds and right 2, yet both contribute about the same number of stories.
+    expect(Math.abs(byBucket.get("left")! - byBucket.get("right")!)).toBeLessThanOrEqual(2);
   });
 });

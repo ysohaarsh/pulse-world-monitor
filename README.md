@@ -29,7 +29,7 @@ Inspired by [koala73/worldmonitor](https://github.com/koala73/worldmonitor). Bui
 | Tests | Vitest (unit), Playwright (e2e, desktop + mobile), GitHub Actions CI |
 | Hosting | Vercel |
 
-**Data sources:** [USGS Earthquakes](https://earthquake.usgs.gov/earthquakes/feed/) · [NASA EONET](https://eonet.gsfc.nasa.gov/) · [The GDELT Project](https://www.gdeltproject.org/) (15-minute event exports) · [GDACS](https://www.gdacs.org/) disaster alerts · [WHO Disease Outbreak News](https://www.who.int/emergencies/disease-outbreak-news) (© WHO, CC BY-NC-SA 3.0 IGO) · world news RSS from BBC, Al Jazeera, NPR, Guardian, DW, France 24 and Crisis Group, plus Reuters/AP headlines via Google News · opt-in sports RSS (BBC Sport, Guardian, Sky Sports, ESPN). Headlines remain © their publishers and always link to the original.
+**Data sources:** [USGS Earthquakes](https://earthquake.usgs.gov/earthquakes/feed/) · [NASA EONET](https://eonet.gsfc.nasa.gov/) · [The GDELT Project](https://www.gdeltproject.org/) (15-minute event exports) · [GDACS](https://www.gdacs.org/) disaster alerts · [WHO Disease Outbreak News](https://www.who.int/emergencies/disease-outbreak-news) (© WHO, CC BY-NC-SA 3.0 IGO) · world news RSS from across the political spectrum (Guardian, HuffPost, Vox, NPR, Al Jazeera, BBC, DW, France 24, Crisis Group, Washington Times, Fox News, New York Post, plus Reuters, AP and Washington Examiner headlines via Google News), with each outlet's lean from [AllSides Media Bias Ratings](https://www.allsides.com/media-bias/ratings) · opt-in sports RSS (BBC Sport, Guardian, Sky Sports, ESPN). Headlines remain © their publishers and always link to the original.
 
 ## Architecture
 

@@ -26,6 +26,7 @@ const CREDITS = [
   { label: "The GDELT Project", href: "https://www.gdeltproject.org" },
   { label: "GDACS", href: "https://www.gdacs.org" },
   { label: "WHO Disease Outbreak News", href: "https://www.who.int/emergencies/disease-outbreak-news" },
+  { label: "AllSides (outlet lean)", href: "https://www.allsides.com/media-bias/ratings" },
 ];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

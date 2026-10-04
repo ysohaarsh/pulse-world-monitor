@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0">
+  <meta content="noindex, nofollow" name="robots"/>
+  <channel>
+    <title><![CDATA[World News]]></title>
+    <link>https://www.huffpost.com/news/world-news</link>
+    <atom:link href="http://chaski.huffpost.com/us/auto/vertical/world-news" rel="self" type="application/rss+xml"/>
+    <description>HuffPost - United States</description>
+    <language>en-US</language>    <item>
+      <title><![CDATA[Iran Says Strait Of Hormuz Will Not Reopen Until Conditions Are Met]]></title>
+      <link>https://www.huffpost.com/entry/strait-of-hormuz-closure_n_6ac24247e4b0bc90e3ff8ae5</link>
+      <description><![CDATA[The Strait of Hormuz will not reopen until seven Iranian conditions set out in a June interim agreement with the U.S. are met, Iran’s state media reported.]]></description>
+      <pubDate>Sun, 04 Oct 2026 08:16:37 -0400</pubDate>
+      <comments>https://www.huffpost.com/entry/strait-of-hormuz-closure_n_6ac24247e4b0bc90e3ff8ae5#comments</comments>
+      <guid>https://www.huffpost.com/entry/strait-of-hormuz-closure_n_6ac24247e4b0bc90e3ff8ae5</guid>
+      <content:encoded>
+        <![CDATA[The Strait of Hormuz will not reopen until seven Iranian conditions set out in a June interim agreement with the U.S. are met, Iran’s state media reported.]]>
+      </content:encoded>
+    </item>
+        <item>
+      <title><![CDATA[Ax-Wielding FlyDubai Co-Pilot Had Been Flagged Over Extremism Concerns]]></title>
+      <link>https://www.huffpost.com/entry/flydubai-mideast-emergency-landing_n_6ac17bc4e4b0ecc03a221ce0</link>
+      <description><![CDATA[The United Arab Emirates says the co-pilot on a FlyDubai flight that nearly crashed with 182 people on board attacked the captain with the cockpit’s crash ax in a “terrorist attack.”]]></description>
+      <pubDate>Sat, 03 Oct 2026 18:21:56 -0400</pubDate>
+      <comments>https://www.huffpost.com/entry/flydubai-mideast-emergency-landing_n_6ac17bc4e4b0ecc03a221ce0#comments</comments>
+      <guid>https://www.huffpost.com/entry/flydubai-mideast-emergency-landing_n_6ac17bc4e4b0ecc03a221ce0</guid>
+      <content:encoded>
+        <![CDATA[The United Arab Emirates says the co-pilot on a FlyDubai flight that nearly crashed with 182 people on board attacked the captain with the cockpit’s crash ax in a “terrorist attack.”]]>
+      </content:encoded>
+    </item>
+</channel></rss>

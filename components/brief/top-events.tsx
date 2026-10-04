@@ -3,6 +3,7 @@ import { countryName, formatUtc, SOURCE_LABELS } from "@/lib/stats/format";
 import type { Category } from "@/lib/types";
 import type { TopEvent } from "@/app/brief/queries";
 import { safeHttpUrl } from "@/lib/url";
+import { LeanBadge } from "@/components/feed/lean-badge";
 
 
 export function TopEvents({ events }: { events: TopEvent[] }) {
@@ -45,6 +46,7 @@ export function TopEvents({ events }: { events: TopEvent[] }) {
                 {e.country && <> · {countryName(e.country)}</>}
                 {" · "}
                 {SOURCE_LABELS[e.source] ?? e.source}
+                <LeanBadge url={e.url} className="ml-2 align-middle" />
               </p>
             </div>
             <span

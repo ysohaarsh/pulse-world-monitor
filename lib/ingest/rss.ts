@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { NormalizedEvent } from "@/lib/types";
+import { withPublisher, type MediaLean } from "@/lib/media-lean";
 import { classify } from "./classify";
 import { detectCountry } from "./geo";
 import type { Ingester } from "./types";
@@ -7,6 +8,10 @@ import type { Ingester } from "./types";
 export interface RssFeedConfig {
   feed: string;
   url: string;
+  /** The outlet's domain: a key of `MEDIA_LEAN` (lib/media-lean.ts) when AllSides rates it. */
+  domain: string;
+  /** AllSides Media Bias Rating of the outlet; null = not rated by AllSides. */
+  lean: MediaLean | null;
   /** Google News search feed: titles end in " - <Publisher>", descriptions only repeat the title. */
   googleNews?: boolean;
   /** Items whose link matches are dropped (e.g. non-English editions). */
@@ -15,28 +20,96 @@ export interface RssFeedConfig {
 
 const googleNewsSearch = (q: string) => `https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`;
 
+/**
+ * World/international sections only. Leans are AllSides ratings (sources in lib/media-lean.ts).
+ * Order matters for cross-feed dedupe: the first feed carrying a story wins.
+ */
 export const RSS_FEEDS: readonly RssFeedConfig[] = [
-  { feed: "bbc", url: "https://feeds.bbci.co.uk/news/world/rss.xml" },
-  { feed: "aljazeera", url: "https://www.aljazeera.com/xml/rss/all.xml" },
-  { feed: "npr", url: "https://feeds.npr.org/1004/rss.xml" },
-  { feed: "guardian", url: "https://www.theguardian.com/world/rss" },
-  { feed: "dw", url: "https://rss.dw.com/xml/rss-en-all" },
-  { feed: "france24", url: "https://www.france24.com/en/rss" },
-  // Crisis Group's feed mixes in other-language editions under /fr/, /es/, ...
+  { feed: "bbc", url: "https://feeds.bbci.co.uk/news/world/rss.xml", domain: "bbc.co.uk", lean: "center" },
+  { feed: "aljazeera", url: "https://www.aljazeera.com/xml/rss/all.xml", domain: "aljazeera.com", lean: "lean-left" },
+  { feed: "npr", url: "https://feeds.npr.org/1004/rss.xml", domain: "npr.org", lean: "lean-left" },
+  { feed: "guardian", url: "https://www.theguardian.com/world/rss", domain: "theguardian.com", lean: "left" },
+  { feed: "dw", url: "https://rss.dw.com/xml/rss-en-all", domain: "dw.com", lean: "center" },
+  // Not rated by AllSides.
+  { feed: "france24", url: "https://www.france24.com/en/rss", domain: "france24.com", lean: null },
+  // Crisis Group (an NGO, not rated by AllSides) mixes in other-language editions under /fr/, /es/, ...
   {
     feed: "crisisgroup",
     url: "https://www.crisisgroup.org/rss",
+    domain: "crisisgroup.org",
+    lean: null,
     excludeLink: /^https?:\/\/(?:www\.)?crisisgroup\.org\/[a-z]{2}\//i,
   },
-  // Google News search feeds are relevance-ordered and link via news.google.com redirects.
-  { feed: "reuters", url: googleNewsSearch("site:reuters.com+world"), googleNews: true },
-  { feed: "ap", url: googleNewsSearch("site:apnews.com+world"), googleNews: true },
+  // Google News search feeds are relevance-ordered and link via news.google.com redirects; the
+  // publisher's domain is appended to those links as `#publisher=<domain>` so the UI can show lean.
+  {
+    feed: "reuters",
+    url: googleNewsSearch("site:reuters.com+world"),
+    domain: "reuters.com",
+    lean: "center",
+    googleNews: true,
+  },
+  {
+    feed: "ap",
+    url: googleNewsSearch("site:apnews.com+world"),
+    domain: "apnews.com",
+    lean: "lean-left",
+    googleNews: true,
+  },
+  { feed: "huffpost", url: "https://www.huffpost.com/section/world-news/feed", domain: "huffpost.com", lean: "left" },
+  // Atom feed.
+  { feed: "vox", url: "https://www.vox.com/rss/world-politics/index.xml", domain: "vox.com", lean: "left" },
+  {
+    feed: "washtimes",
+    url: "https://www.washingtontimes.com/rss/headlines/news/world/",
+    domain: "washingtontimes.com",
+    lean: "lean-right",
+  },
+  // Its own feeds return 403 to bots. `when:3d` stops relevance ordering surfacing old stories.
+  {
+    feed: "washex",
+    url: googleNewsSearch("site:washingtonexaminer.com+world+when:3d"),
+    domain: "washingtonexaminer.com",
+    lean: "lean-right",
+    googleNews: true,
+  },
+  { feed: "foxnews", url: "https://moxie.foxnews.com/google-publisher/world.xml", domain: "foxnews.com", lean: "right" },
+  { feed: "nypost", url: "https://nypost.com/world-news/feed/", domain: "nypost.com", lean: "right" },
 ];
 
 const FEED_CONFIG = new Map(RSS_FEEDS.map((f) => [f.feed, f]));
 
 /** Keep only the newest N items per feed so one busy feed (DW lists ~130) can't flood a run. */
 export const MAX_ITEMS_PER_FEED = 25;
+
+/**
+ * Per-run item budget for each lean bucket (unrated feeds share one more bucket). The budget is
+ * split evenly between the bucket's feeds present in the run, so a bucket with more feeds doesn't
+ * contribute more stories: 3 feeds → 16 each, 2 → 24 each, 1 → 25 (MAX_ITEMS_PER_FEED).
+ */
+export const MAX_ITEMS_PER_LEAN = 48;
+
+type LeanBucket = MediaLean | "unrated";
+
+const bucketOf = (config: RssFeedConfig | undefined): LeanBucket | null =>
+  config ? (config.lean ?? "unrated") : null;
+
+/** Item cap for each feed in a run, given the feeds that actually returned data. */
+export function feedCaps(feeds: readonly string[]): Map<string, number> {
+  const unique = [...new Set(feeds)];
+  const perBucket = new Map<LeanBucket, number>();
+  for (const f of unique) {
+    const b = bucketOf(FEED_CONFIG.get(f));
+    if (b) perBucket.set(b, (perBucket.get(b) ?? 0) + 1);
+  }
+  return new Map(
+    unique.map((f) => {
+      const b = bucketOf(FEED_CONFIG.get(f));
+      const share = b ? Math.floor(MAX_ITEMS_PER_LEAN / perBucket.get(b)!) : MAX_ITEMS_PER_FEED;
+      return [f, Math.min(MAX_ITEMS_PER_FEED, share)];
+    }),
+  );
+}
 
 export interface RssFeedRaw {
   feed: string;
@@ -51,6 +124,8 @@ export interface RssItem {
   guid: string | null;
   /** `<source>` publisher name, set by aggregators such as Google News. */
   source: string | null;
+  /** `<source url="…">`: the publisher's site, e.g. "https://www.reuters.com". */
+  sourceUrl: string | null;
 }
 
 const SUMMARY_MAX = 280;
@@ -104,6 +179,26 @@ function tag(block: string, name: string): string | null {
   return v === "" ? null : v;
 }
 
+/** Attribute values of every `<name …>` start tag in `block`, as lower-cased-key maps. */
+function startTags(block: string, name: string): Record<string, string>[] {
+  const out: Record<string, string>[] = [];
+  for (const m of block.matchAll(new RegExp(`<${name}(\\s[^>]*?)?\\s*/?>`, "gi"))) {
+    const attrs: Record<string, string> = {};
+    for (const a of (m[1] ?? "").matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g)) {
+      attrs[a[1].toLowerCase()] = decodeEntities(a[2] ?? a[3]);
+    }
+    out.push(attrs);
+  }
+  return out;
+}
+
+/** Atom `<link href>`: the `rel="alternate"` one (the default when rel is omitted). */
+function atomLink(block: string): string | null {
+  const links = startTags(block, "link").filter((a) => a.href);
+  return (links.find((a) => !a.rel || a.rel === "alternate") ?? null)?.href ?? null;
+}
+
+/** Items of an RSS 2.0 feed, or entries of an Atom feed (Vox), in document order. */
 export function parseRss(xml: string): RssItem[] {
   const items: RssItem[] = [];
   for (const m of xml.matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)) {
@@ -115,6 +210,19 @@ export function parseRss(xml: string): RssItem[] {
       pubDate: tag(block, "pubDate"),
       guid: tag(block, "guid"),
       source: tag(block, "source"),
+      sourceUrl: startTags(block, "source")[0]?.url ?? null,
+    });
+  }
+  for (const m of xml.matchAll(/<entry(?:\s[^>]*)?>([\s\S]*?)<\/entry>/gi)) {
+    const block = m[1];
+    items.push({
+      title: tag(block, "title"),
+      link: atomLink(block),
+      description: tag(block, "summary") ?? tag(block, "content"),
+      pubDate: tag(block, "published") ?? tag(block, "updated"),
+      guid: tag(block, "id"),
+      source: null,
+      sourceUrl: null,
     });
   }
   return items;
@@ -150,6 +258,7 @@ const itemSchema = z
     pubDate: z.string().min(1),
     guid: z.string().min(1).nullable(),
     source: z.string().nullable(),
+    sourceUrl: z.string().nullable(),
   })
   .refine((i) => i.guid !== null || i.link !== null, "needs guid or link");
 
@@ -213,14 +322,17 @@ export const rssIngester: Ingester<RssFeedRaw[]> = {
     const feeds = Array.isArray(raw) ? raw : [];
     const seen = new Set<string>();
     const out: NormalizedEvent[] = [];
-    for (const f of feeds) {
+    const valid = feeds.flatMap((f) => {
       const feed = feedSchema.safeParse(f);
-      if (!feed.success) continue;
+      return feed.success ? [feed] : [];
+    });
+    const caps = feedCaps(valid.map((f) => f.data.feed));
+    for (const feed of valid) {
       const name = feed.data.feed;
       const config = FEED_CONFIG.get(name);
 
       // Dedupe within the feed in document order (first occurrence wins), then keep the
-      // newest MAX_ITEMS_PER_FEED, then dedupe against earlier feeds.
+      // newest `caps` (per-feed and per-lean limits), then dedupe against earlier feeds.
       const local = new Set<string>();
       const candidates: { time: number; event: NormalizedEvent }[] = [];
       for (const rawItem of parseRss(feed.data.xml)) {
@@ -253,7 +365,11 @@ export const rssIngester: Ingester<RssFeedRaw[]> = {
             lat: geo?.lat ?? null,
             lng: geo?.lng ?? null,
             country: geo?.country ?? null,
-            url: isHttpUrl(item.link) ? item.link : null,
+            url: !isHttpUrl(item.link)
+              ? null
+              : config?.googleNews
+                ? withPublisher(item.link, item.sourceUrl ?? config.domain)
+                : item.link,
             occurred_at: new Date(time).toISOString(),
             raw: { feed: name, ...item },
           },
@@ -261,7 +377,7 @@ export const rssIngester: Ingester<RssFeedRaw[]> = {
       }
 
       candidates.sort((a, b) => b.time - a.time);
-      for (const { event } of candidates.slice(0, MAX_ITEMS_PER_FEED)) {
+      for (const { event } of candidates.slice(0, caps.get(name) ?? MAX_ITEMS_PER_FEED)) {
         if (seen.has(event.external_id)) continue;
         seen.add(event.external_id);
         out.push(event);
