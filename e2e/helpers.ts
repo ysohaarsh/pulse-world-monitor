@@ -13,7 +13,7 @@ export function skipWithoutDb() {
  */
 const IGNORED = [
   /Failed to load resource/i,
-  /tile\.openstreetmap|basemaps\.cartocdn|arcgisonline/i,
+  /tile\.openstreetmap|basemaps\.cartocdn|arcgisonline|openfreemap/i,
   /WebSocket connection to .* failed/i,
   // Without Supabase env the app deliberately logs that realtime is unavailable; that's the expected degraded mode.
   ...(HAS_DB ? [] : [/Missing environment variable: NEXT_PUBLIC_SUPABASE/]),

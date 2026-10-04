@@ -24,7 +24,7 @@ test.describe("home", () => {
     await page.goto("/");
 
     await expect(page).toHaveTitle(/Pulse/);
-    await expect(page.getByRole("region", { name: "Event map" }).locator(".leaflet-container")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Event map" }).locator(".maplibregl-canvas")).toBeVisible();
     await expect(feed(page).getByRole("heading", { name: "Live feed" })).toBeVisible();
     await waitForFeed(page);
 
@@ -106,7 +106,7 @@ test.describe("home layout", () => {
   test("map and feed are both visible", async ({ page }, testInfo) => {
     await page.goto("/");
     const map = page.getByRole("region", { name: "Event map" });
-    await expect(map.locator(".leaflet-container")).toBeVisible();
+    await expect(map.locator(".maplibregl-canvas")).toBeVisible();
     await expect(feed(page)).toBeVisible();
 
     if (testInfo.project.name.startsWith("mobile")) {

@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Claude Code agent worktrees
 .claude/worktrees/
+
+# MapLibre worker files, copied from node_modules by scripts/copy-maplibre-worker.mjs
+/public/maplibre/

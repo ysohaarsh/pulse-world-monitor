@@ -1,15 +1,27 @@
 "use client";
 
-import "leaflet/dist/leaflet.css";
-import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 import "./map.css";
 
-import { memo, useEffect, useMemo, useState } from "react";
-import L from "leaflet";
-import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
+import { useEffect, useRef, useState } from "react";
+import {
+  GPUInitializationError,
+  Map as MapLibreMap,
+  NavigationControl,
+  Popup,
+  setWorkerUrl,
+  type ExpressionSpecification,
+  type FilterSpecification,
+  type GeoJSONSource,
+  type LngLat,
+  type MapLayerMouseEvent,
+} from "maplibre-gl";
 import { CATEGORY_META } from "@/lib/categories";
 import type { EventRow } from "@/lib/types";
+import { pulseStyle } from "./pulse-style";
+
+// Served from public/ by scripts/copy-maplibre-worker.mjs (MapLibre's documented Next.js setup).
+setWorkerUrl("/maplibre/maplibre-gl-worker.mjs");
 
 export type GeoEvent = EventRow & { lat: number; lng: number };
 
@@ -27,153 +39,312 @@ export interface EventMapProps {
   onSelect: (id: number) => void;
 }
 
-// Esri dark gray canvas: free, keyless (CARTO basemaps now require an API key).
-const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas";
-const TILE_URL = `${ESRI}/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`;
-const LABELS_URL = `${ESRI}/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`;
-const ATTRIBUTION = 'Tiles &copy; <a href="https://www.esri.com">Esri</a> &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
-
-export function severityRadius(severity: number): number {
-  return 4 + severity * 2;
+const ACCENT = "#00ff88";
+const WARN = "#ffb020";
+const DANGER = "#ff3355";
+const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
+/** Marker radius in px for a severity 1–5 (same scale the legend describes). */
+const RADIUS: ExpressionSpecification = ["+", 4, ["*", 2, ["get", "severity"]]];
+/** Cluster color = most severe event inside it. */
+const CLUSTER_COLOR: ExpressionSpecification = ["step", ["get", "maxSev"], ACCENT, 3, WARN, 4, DANGER];
+const PULSE_MS = 1800;
+/** Zoom at which the globe fills an ~830px panel; scaled so it fits smaller (mobile) panels too. */
+const BASE_ZOOM = 2.1;
+function fitZoom(el: HTMLElement): number {
+  const size = Math.min(el.clientWidth, el.clientHeight) || 830;
+  return Math.min(BASE_ZOOM, Math.max(0.8, BASE_ZOOM + Math.log2(size / 830)));
 }
+const SPIN_DEG_PER_SEC = 3;
 
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-}
-
-/** Minimal shape of Leaflet.markercluster's cluster object (its @types package isn't installed). */
-interface ClusterLike {
-  getAllChildMarkers(): L.Layer[];
-  getChildCount(): number;
-}
-
-/** Cluster bubble colored by the most common category inside it. */
-function clusterIcon(cluster: ClusterLike): L.DivIcon {
-  const children = cluster.getAllChildMarkers() as unknown as L.CircleMarker[];
-  const counts = new Map<string, number>();
-  for (const m of children) {
-    const color = m.options.fillColor ?? CATEGORY_META.other.color;
-    counts.set(color, (counts.get(color) ?? 0) + 1);
-  }
-  let color = CATEGORY_META.other.color;
-  let best = 0;
-  for (const [c, n] of counts) if (n > best) [color, best] = [c, n];
-  const count = cluster.getChildCount();
-  const size = count < 10 ? 30 : count < 100 ? 36 : 44;
-  return L.divIcon({
-    html: `<span style="--c:${escapeHtml(color)}">${count}</span>`,
-    className: "pulse-cluster",
-    iconSize: L.point(size, size),
-  });
-}
-
-function FlyTo({ target }: { target: FlyTarget | null }) {
-  const map = useMap();
-  useEffect(() => {
-    if (!target) return;
-    map.flyTo([target.lat, target.lng], Math.max(map.getZoom(), 7), { duration: 0.8 });
-  }, [map, target]);
-  return null;
+function toFeatures(events: GeoEvent[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
+  return {
+    type: "FeatureCollection",
+    features: events.map((e) => ({
+      type: "Feature",
+      id: e.id,
+      geometry: { type: "Point", coordinates: [e.lng, e.lat] },
+      properties: { id: e.id, title: e.title, severity: e.severity, color: CATEGORY_META[e.category].color },
+    })),
+  };
 }
 
 function formatCoord(value: number, pos: string, neg: string): string {
   return `${Math.abs(value).toFixed(2).padStart(6, "0")}°${value >= 0 ? pos : neg}`;
 }
 
-/** HUD readout of the cursor position and zoom, top-right of the map. */
-function CursorReadout() {
-  const map = useMap();
-  const [pos, setPos] = useState<L.LatLng | null>(null);
-  const [zoom, setZoom] = useState(() => map.getZoom());
-  useMapEvents({
-    mousemove: (e) => setPos(e.latlng.wrap()),
-    mouseout: () => setPos(null),
-    zoomend: () => setZoom(map.getZoom()),
-  });
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute right-2 top-2 z-[1000] hidden border border-border-strong bg-background/80 px-2 py-1 font-mono text-[10px] tracking-wider text-accent sm:block"
-    >
-      {pos ? `LAT ${formatCoord(pos.lat, "N", "S")}  LON ${formatCoord(pos.lng, "E", "W")}` : "LAT ---.--°  LON ---.--°"}
-      <span className="ml-3 text-muted">Z{String(zoom).padStart(2, "0")}</span>
-    </div>
-  );
+function reducedMotion(): boolean {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-const Markers = memo(function Markers({
-  events,
-  onSelect,
-}: {
-  events: GeoEvent[];
-  onSelect: (id: number) => void;
-}) {
-  return (
-    <MarkerClusterGroup
-      chunkedLoading
-      showCoverageOnHover={false}
-      maxClusterRadius={45}
-      spiderfyOnMaxZoom
-      iconCreateFunction={clusterIcon}
-    >
-      {events.map((e) => {
-        const color = CATEGORY_META[e.category].color;
-        return (
-          <CircleMarker
-            key={e.id}
-            center={[e.lat, e.lng]}
-            radius={severityRadius(e.severity)}
-            pathOptions={{
-              color,
-              fillColor: color,
-              fillOpacity: 0.45,
-              weight: 1.5,
-              opacity: 1,
-              className: e.severity >= 4 ? "pulse-hot" : undefined,
-            }}
-            eventHandlers={{ click: () => onSelect(e.id) }}
-          >
-            <Tooltip direction="top" offset={[0, -4]}>
-              {e.title}
-            </Tooltip>
-          </CircleMarker>
-        );
-      })}
-    </MarkerClusterGroup>
-  );
-});
+/** Adds the event, cluster, pulse and selection layers on top of the basemap. */
+function addEventLayers(map: MapLibreMap) {
+  map.addSource("events", {
+    type: "geojson",
+    data: EMPTY,
+    cluster: true,
+    clusterRadius: 45,
+    clusterMaxZoom: 6,
+    clusterProperties: { maxSev: ["max", ["get", "severity"]] },
+  });
+  map.addSource("selected", { type: "geojson", data: EMPTY });
+
+  const clustered: FilterSpecification = ["has", "point_count"];
+  const single: FilterSpecification = ["!", ["has", "point_count"]];
+
+  map.addLayer({
+    id: "cluster-halo",
+    type: "circle",
+    source: "events",
+    filter: clustered,
+    paint: {
+      "circle-color": CLUSTER_COLOR,
+      "circle-opacity": 0.14,
+      "circle-blur": 0.6,
+      "circle-radius": ["step", ["get", "point_count"], 22, 10, 27, 50, 34],
+    },
+  });
+  map.addLayer({
+    id: "clusters",
+    type: "circle",
+    source: "events",
+    filter: clustered,
+    paint: {
+      "circle-color": "#010805",
+      "circle-opacity": 0.85,
+      "circle-stroke-color": CLUSTER_COLOR,
+      "circle-stroke-width": 1.5,
+      "circle-radius": ["step", ["get", "point_count"], 14, 10, 17, 50, 22],
+    },
+  });
+  map.addLayer({
+    id: "cluster-count",
+    type: "symbol",
+    source: "events",
+    filter: clustered,
+    layout: {
+      "text-field": ["get", "point_count_abbreviated"],
+      "text-font": ["Noto Sans Regular"],
+      "text-size": 11,
+      "text-allow-overlap": true,
+    },
+    paint: { "text-color": CLUSTER_COLOR, "text-halo-color": "#000", "text-halo-width": 0.6 },
+  });
+  map.addLayer({
+    id: "events-glow",
+    type: "circle",
+    source: "events",
+    filter: single,
+    paint: {
+      "circle-color": ["get", "color"],
+      "circle-radius": ["+", RADIUS, 5],
+      "circle-opacity": 0.22,
+      "circle-blur": 1,
+    },
+  });
+  map.addLayer({
+    id: "events-points",
+    type: "circle",
+    source: "events",
+    filter: single,
+    paint: {
+      "circle-color": ["get", "color"],
+      "circle-opacity": 0.5,
+      "circle-radius": RADIUS,
+      "circle-stroke-color": ["get", "color"],
+      "circle-stroke-width": 1.5,
+    },
+  });
+  map.addLayer({
+    id: "events-hot",
+    type: "circle",
+    source: "events",
+    filter: ["all", single, [">=", ["get", "severity"], 4]],
+    paint: {
+      "circle-color": "transparent",
+      "circle-radius": RADIUS,
+      "circle-stroke-color": ["get", "color"],
+      "circle-stroke-width": 3,
+      "circle-stroke-opacity": 0.6,
+    },
+  });
+  map.addLayer({
+    id: "selected-halo",
+    type: "circle",
+    source: "selected",
+    paint: { "circle-color": ACCENT, "circle-opacity": 0.25, "circle-blur": 0.8, "circle-radius": ["+", RADIUS, 12] },
+  });
+  map.addLayer({
+    id: "selected-ring",
+    type: "circle",
+    source: "selected",
+    paint: {
+      "circle-color": ["get", "color"],
+      "circle-opacity": 0.9,
+      "circle-radius": ["+", RADIUS, 3],
+      "circle-stroke-color": ACCENT,
+      "circle-stroke-width": 2.5,
+    },
+  });
+}
 
 export default function EventMap({ events, selected, flyTarget, onSelect }: EventMapProps) {
-  const selectedColor = selected ? CATEGORY_META[selected.category].color : undefined;
-  const selectedOptions = useMemo(
-    () => ({ color: "#00ff88", weight: 2.5, fillColor: selectedColor, fillOpacity: 0.9, className: "pulse-selected" }),
-    [selectedColor],
-  );
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const readyRef = useRef(false);
+  const eventsRef = useRef(events);
+  const selectedRef = useRef(selected);
+  const onSelectRef = useRef(onSelect);
+  const [failed, setFailed] = useState(false);
+  const [cursor, setCursor] = useState<LngLat | null>(null);
+  const [zoom, setZoom] = useState(BASE_ZOOM);
+
+  useEffect(() => {
+    eventsRef.current = events;
+    selectedRef.current = selected;
+    onSelectRef.current = onSelect;
+  });
+
+  // Create the map once.
+  useEffect(() => {
+    if (!containerRef.current) return;
+    let map: MapLibreMap;
+    const initialZoom = fitZoom(containerRef.current);
+    try {
+      map = new MapLibreMap({
+        container: containerRef.current,
+        style: pulseStyle(),
+        center: [15, 22],
+        zoom: initialZoom,
+        minZoom: 0.8,
+        maxZoom: 16,
+        attributionControl: { compact: true },
+      });
+    } catch (err) {
+      console.warn("[map] WebGL2 unavailable:", err instanceof GPUInitializationError ? err.message : err);
+      queueMicrotask(() => setFailed(true));
+      return;
+    }
+    mapRef.current = map;
+    queueMicrotask(() => setZoom(initialZoom));
+    map.addControl(new NavigationControl({ visualizePitch: true }), "top-left");
+
+    const popup = new Popup({ closeButton: false, closeOnClick: false, className: "pulse-tip", offset: 10 });
+    const motionOk = !reducedMotion();
+    let raf = 0;
+    let lastFrame = 0;
+    let spinning = motionOk;
+    const stopSpin = () => {
+      spinning = false;
+    };
+
+    map.on("load", () => {
+      addEventLayers(map);
+      readyRef.current = true;
+      (map.getSource("events") as GeoJSONSource).setData(toFeatures(eventsRef.current));
+      const sel = selectedRef.current;
+      if (sel) (map.getSource("selected") as GeoJSONSource).setData(toFeatures([sel]));
+
+      // Pulse severity 4+ markers and slowly spin the globe until the user takes control.
+      const tick = (now: number) => {
+        raf = requestAnimationFrame(tick);
+        if (document.hidden || now - lastFrame < 33) return;
+        const dt = lastFrame ? now - lastFrame : 0;
+        lastFrame = now;
+        if (motionOk) {
+          const p = (Math.sin(((now % PULSE_MS) / PULSE_MS) * Math.PI * 2) + 1) / 2;
+          map.setPaintProperty("events-hot", "circle-stroke-width", 1.5 + 8 * p);
+          map.setPaintProperty("events-hot", "circle-stroke-opacity", 0.9 - 0.75 * p);
+        }
+        if (spinning && map.getZoom() < 3 && !map.isMoving()) {
+          const c = map.getCenter();
+          map.setCenter([c.lng + (SPIN_DEG_PER_SEC * dt) / 1000, c.lat]);
+        }
+      };
+      if (motionOk) raf = requestAnimationFrame(tick);
+    });
+
+    for (const ev of ["mousedown", "touchstart", "wheel", "dragstart"] as const) map.on(ev, stopSpin);
+
+    map.on("click", "events-points", (e: MapLayerMouseEvent) => {
+      const id = Number(e.features?.[0]?.properties?.id);
+      if (Number.isFinite(id)) onSelectRef.current(id);
+    });
+    map.on("click", "clusters", async (e: MapLayerMouseEvent) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const zoomTo = await (map.getSource("events") as GeoJSONSource).getClusterExpansionZoom(
+        Number(f.properties?.cluster_id),
+      );
+      const [lng, lat] = (f.geometry as GeoJSON.Point).coordinates;
+      map.easeTo({ center: [lng, lat], zoom: zoomTo + 0.5, duration: 700 });
+    });
+    for (const layer of ["events-points", "clusters"]) {
+      map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
+      map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
+    }
+    map.on("mousemove", "events-points", (e: MapLayerMouseEvent) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const [lng, lat] = (f.geometry as GeoJSON.Point).coordinates;
+      popup.setLngLat([lng, lat]).setText(String(f.properties?.title ?? "")).addTo(map);
+    });
+    map.on("mouseleave", "events-points", () => popup.remove());
+    map.on("mousemove", (e) => setCursor(e.lngLat.wrap()));
+    map.on("mouseout", () => setCursor(null));
+    map.on("zoomend", () => setZoom(map.getZoom()));
+
+    return () => {
+      cancelAnimationFrame(raf);
+      popup.remove();
+      readyRef.current = false;
+      mapRef.current = null;
+      map.remove();
+    };
+  }, []);
+
+  // Realtime: push new data into the existing source; the map is never re-mounted.
+  useEffect(() => {
+    if (readyRef.current) (mapRef.current?.getSource("events") as GeoJSONSource | undefined)?.setData(toFeatures(events));
+  }, [events]);
+
+  useEffect(() => {
+    if (readyRef.current) {
+      (mapRef.current?.getSource("selected") as GeoJSONSource | undefined)?.setData(
+        selected ? toFeatures([selected]) : EMPTY,
+      );
+    }
+  }, [selected]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !flyTarget) return;
+    map.flyTo({ center: [flyTarget.lng, flyTarget.lat], zoom: Math.max(map.getZoom(), 4.5), duration: 1200 });
+  }, [flyTarget]);
+
+  if (failed) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-background text-center">
+        <span className="blink text-sm font-bold tracking-[0.4em] text-danger">NO SIGNAL</span>
+        <span className="max-w-xs text-[11px] text-muted">
+          This device can&apos;t render the 3D globe (WebGL2 unavailable). The live feed and SITREP still work.
+        </span>
+      </div>
+    );
+  }
 
   return (
-    <MapContainer
-      center={[20, 0]}
-      zoom={2}
-      minZoom={2}
-      worldCopyJump
-      className="pulse-map h-full w-full"
-      aria-label="Map of recent world events"
-    >
-      <TileLayer url={TILE_URL} attribution={ATTRIBUTION} maxZoom={16} />
-      <TileLayer url={LABELS_URL} maxZoom={16} />
-      <Markers events={events} onSelect={onSelect} />
-      {selected && (
-        // Rendered outside the cluster so the selection is always visible on top.
-        <CircleMarker
-          key={`selected-${selected.id}`}
-          center={[selected.lat, selected.lng]}
-          radius={severityRadius(selected.severity) + 3}
-          pathOptions={selectedOptions}
-          interactive={false}
-        />
-      )}
-      <FlyTo target={flyTarget} />
-      <CursorReadout />
-    </MapContainer>
+    <div className="pulse-map relative h-full w-full" aria-label="Globe of recent world events">
+      {/* Not `absolute`: maplibre-gl.css (unlayered) forces .maplibregl-map to position: relative. */}
+      <div ref={containerRef} className="h-full w-full" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute right-2 top-2 z-10 hidden border border-border-strong bg-background/80 px-2 py-1 font-mono text-[10px] tracking-wider text-accent sm:block"
+      >
+        {cursor
+          ? `LAT ${formatCoord(cursor.lat, "N", "S")}  LON ${formatCoord(cursor.lng, "E", "W")}`
+          : "LAT ---.--°  LON ---.--°"}
+        <span className="ml-3 text-muted">Z{zoom.toFixed(1).padStart(4, "0")}</span>
+      </div>
+    </div>
   );
 }

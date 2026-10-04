@@ -30,6 +30,7 @@ If you truly need to touch a shared file (`lib/types.ts`, `package.json`, `app/l
 
 ## Style
 - Dark UI; use the theme tokens in `app/globals.css` (`bg-surface`, `border-border`, `text-muted`, `text-accent`), not raw hex.
-- Server Components by default; add `"use client"` only where needed (Leaflet must be client-only, load via `next/dynamic` with `ssr: false`).
+- Server Components by default; add `"use client"` only where needed (the map must be client-only, load via `next/dynamic` with `ssr: false`).
+- Map: MapLibre GL v6 globe + OpenFreeMap vector tiles (keyless), style in `components/map/pulse-style.ts`. Its worker is served from `public/maplibre/` (copied by `scripts/copy-maplibre-worker.mjs` in `predev`/`prebuild`; gitignored) — don't import the worker through the bundler.
 - Validate external API payloads with zod inside `normalize`; skip bad items instead of throwing.
 - Tests: Vitest, colocated `*.test.ts`, run against saved fixtures — no network in unit tests.

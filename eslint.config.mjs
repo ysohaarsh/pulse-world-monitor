@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Claude Code agent worktrees
     ".claude/**",
+    // MapLibre worker files copied from node_modules at build time
+    "public/maplibre/**",
   ]),
 ]);
 

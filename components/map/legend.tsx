@@ -21,6 +21,7 @@ export function MapLegend({ className = "" }: { className?: string }) {
         ))}
       </ul>
       <p className="mt-1.5 border-t border-border pt-1 text-muted">◎ size = severity · pulsing = S4+</p>
+      <p className="text-muted">clusters: <span className="text-accent">●</span> S1–2 <span className="text-warn">●</span> S3 <span className="text-danger">●</span> S4+</p>
     </section>
   );
 }
