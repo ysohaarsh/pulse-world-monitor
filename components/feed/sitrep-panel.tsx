@@ -19,6 +19,15 @@ const THREAT_COLOR: Record<Sitrep["threatLabel"], string> = {
 
 const SEGMENTS = 20;
 
+/** Attribution required by the upstream data providers. */
+const CREDITS = [
+  { label: "USGS", href: "https://earthquake.usgs.gov" },
+  { label: "NASA EONET", href: "https://eonet.gsfc.nasa.gov" },
+  { label: "The GDELT Project", href: "https://www.gdeltproject.org" },
+  { label: "GDACS", href: "https://www.gdacs.org" },
+  { label: "WHO Disease Outbreak News", href: "https://www.who.int/emergencies/disease-outbreak-news" },
+];
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="border-b border-border px-3 py-3 last:border-b-0">
@@ -145,6 +154,18 @@ export function SitrepPanel({
             );
           })}
         </ul>
+        <p className="mt-2 text-[9px] leading-relaxed text-muted">
+          Data:{" "}
+          {CREDITS.map((c, i) => (
+            <span key={c.href}>
+              {i > 0 && " · "}
+              <a href={c.href} target="_blank" rel="noopener noreferrer" className="hover:text-accent">
+                {c.label}
+              </a>
+            </span>
+          ))}
+          . WHO content CC BY-NC-SA 3.0 IGO; GDACS alerts are automated estimates.
+        </p>
       </Section>
 
       <Section title="Data feeds">
