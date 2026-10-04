@@ -53,7 +53,7 @@ export default async function WatchlistsPage({ searchParams }: PageProps<"/watch
       <div className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[1fr_22rem]">
         <section aria-labelledby="wl-heading" className="flex min-w-0 flex-col gap-4">
           <header>
-            <h1 id="wl-heading" className="text-xl font-semibold">
+            <h1 id="wl-heading" className="glow text-lg font-bold uppercase tracking-[0.25em] text-accent">
               Watchlists
             </h1>
             <p className="text-sm text-muted">
@@ -85,7 +85,7 @@ export default async function WatchlistsPage({ searchParams }: PageProps<"/watch
                   <WatchlistForm id={w.id} initial={toFormValues(w)} />
                 </li>
               ) : (
-                <li key={w.id} className="rounded-lg border border-border bg-surface p-4">
+                <li key={w.id} className="hud-panel p-4">
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <h2 className="font-semibold">{w.name}</h2>
                     <span className="shrink-0 font-mono text-[11px] text-muted">sev ≥ {w.min_severity}</span>
@@ -149,7 +149,7 @@ export default async function WatchlistsPage({ searchParams }: PageProps<"/watch
           </ul>
         </section>
 
-        <aside aria-labelledby="new-wl-heading" className="h-fit rounded-lg border border-border bg-surface p-4">
+        <aside aria-labelledby="new-wl-heading" className="h-fit hud-panel p-4">
           <h2 id="new-wl-heading" className="mb-3 font-semibold">
             New watchlist
           </h2>

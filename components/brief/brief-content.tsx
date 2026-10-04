@@ -20,12 +20,12 @@ function InlineText({ parts }: { parts: Inline[] }) {
 export function BriefContent({ content }: { content: string }) {
   const blocks = parseMarkdown(content);
   return (
-    <div className="flex flex-col gap-3 leading-relaxed text-foreground/90">
+    <div className="flex flex-col gap-3 font-sans leading-relaxed text-foreground/90">
       {blocks.map((b, i) => {
         switch (b.type) {
           case "heading":
             return b.level === 2 ? (
-              <h2 key={i} className="mt-2 text-base font-semibold text-foreground">
+              <h2 key={i} className="mt-2 font-mono text-sm font-bold uppercase tracking-[0.2em] text-accent">
                 <InlineText parts={b.content} />
               </h2>
             ) : (

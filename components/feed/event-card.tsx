@@ -29,34 +29,45 @@ export const EventCard = memo(function EventCard({
   onSelect: (id: number) => void;
 }) {
   const meta = CATEGORY_META[event.category];
+  const zulu = event.occurred_at.length >= 16 ? `${event.occurred_at.slice(11, 16)}Z` : "--:--Z";
   return (
     <button
       type="button"
       data-event-id={event.id}
       aria-pressed={selected}
       onClick={() => onSelect(event.id)}
-      className={`group relative flex w-full gap-3 border-b border-border py-2.5 pl-4 pr-3 text-left transition-colors duration-1000 ${FOCUS_RING} focus-visible:ring-inset ${
-        selected ? "bg-surface-2" : fresh ? "bg-accent/10" : "hover:bg-surface-2/60"
+      className={`group relative flex w-full gap-3 border-b border-border/70 py-2 pl-4 pr-3 text-left transition-colors duration-1000 ${FOCUS_RING} focus-visible:ring-inset ${
+        selected ? "bg-accent/10" : fresh ? "bg-accent/15" : "hover:bg-accent/5"
       }`}
     >
       <span
         aria-hidden
-        className="absolute inset-y-0 left-0 w-1"
-        style={{ backgroundColor: meta.color }}
+        className="absolute inset-y-0 left-0 w-0.5"
+        style={{ backgroundColor: meta.color, boxShadow: `0 0 8px ${meta.color}` }}
       />
+      {selected && <span aria-hidden className="absolute inset-y-0 right-0 w-0.5 bg-accent" />}
       <span className="min-w-0 flex-1">
-        <span className="line-clamp-2 text-sm leading-snug text-foreground">{event.title}</span>
-        <span className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-muted">
-          <span style={{ color: meta.color }}>{meta.label}</span>
-          <time dateTime={event.occurred_at} suppressHydrationWarning>
+        <span className="flex flex-wrap items-center gap-x-2 text-[10px] tracking-wider">
+          <span className="tabular-nums text-accent">{zulu}</span>
+          <span className="uppercase" style={{ color: meta.color }}>
+            {meta.label}
+          </span>
+          <span className="text-muted">[{SOURCE_LABEL[event.source]}]</span>
+          {event.country && <span className="text-foreground/80">{event.country}</span>}
+          {fresh && <span className="blink font-bold text-accent">● NEW</span>}
+          <time
+            dateTime={event.occurred_at}
+            suppressHydrationWarning
+            className="ml-auto normal-case tracking-normal text-muted"
+          >
             {relativeTime(event.occurred_at, now)}
           </time>
-          <span className="font-mono">{SOURCE_LABEL[event.source]}</span>
-          {event.country && <span className="font-mono">{event.country}</span>}
-          {fresh && <span className="font-mono uppercase tracking-wider text-accent">new</span>}
+        </span>
+        <span className="mt-1 line-clamp-2 font-sans text-[13px] leading-snug text-foreground group-hover:text-accent">
+          {event.title}
         </span>
       </span>
-      <SeverityPips severity={event.severity} className="mt-1 shrink-0" />
+      <SeverityPips severity={event.severity} className="mt-0.5 shrink-0 self-center" />
     </button>
   );
 });

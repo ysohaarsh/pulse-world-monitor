@@ -12,19 +12,19 @@ export function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className={`flex min-w-0 flex-col rounded-lg border border-border bg-surface p-4 ${className}`}>
-      <header className="mb-3">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+    <section className={`hud-panel flex min-w-0 flex-col ${className}`}>
+      <header className="hud-header">
+        <h2 className="hud-tab">{title}</h2>
+        {subtitle && <p className="hud-label truncate !text-[9px]">{subtitle}</p>}
       </header>
-      {children}
+      <div className="flex min-w-0 flex-1 flex-col p-4">{children}</div>
     </section>
   );
 }
 
 export function EmptyChart({ message = "No events in this window yet." }: { message?: string }) {
   return (
-    <div className="flex min-h-40 flex-1 items-center justify-center rounded-md border border-dashed border-border px-4 text-center text-sm text-muted">
+    <div className="flex min-h-40 flex-1 items-center justify-center border border-dashed border-border px-4 text-center text-xs uppercase tracking-widest text-muted">
       {message}
     </div>
   );

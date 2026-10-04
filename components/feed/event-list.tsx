@@ -38,7 +38,7 @@ export function EventList({
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center">
         <span aria-hidden className="h-2 w-2 animate-pulse rounded-full bg-accent" />
-        <p className="text-sm text-foreground">No events {filtered ? "match these filters" : "yet"}.</p>
+        <p className="text-sm uppercase tracking-widest text-accent">No events {filtered ? "match these filters" : "yet"}.</p>
         <p className="text-xs leading-relaxed text-muted">
           Pulse ingests earthquakes (USGS), natural hazards (NASA EONET) and world news (GDELT, RSS)
           every few minutes. New events will appear here automatically — no need to refresh.
@@ -47,7 +47,7 @@ export function EventList({
           <button
             type="button"
             onClick={onResetFilters}
-            className={`rounded-md border border-border px-3 py-1 text-xs text-accent hover:bg-surface-2 ${FOCUS_RING}`}
+            className={`border border-accent px-3 py-1 text-xs uppercase tracking-widest text-accent hover:bg-accent hover:text-black ${FOCUS_RING}`}
           >
             Reset filters
           </button>

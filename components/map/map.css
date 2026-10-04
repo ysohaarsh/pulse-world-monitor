@@ -1,38 +1,75 @@
-/* Leaflet overrides for the dark "situation room" theme. Scoped to .pulse-map. */
+/* Leaflet overrides for the green-on-black control-room theme. Scoped to .pulse-map. */
 .pulse-map {
-  background: var(--background);
-  font-family: inherit;
+  background: #010805;
+  font-family: var(--font-mono);
+}
+
+/* Tint the gray basemap phosphor green. */
+.pulse-map .leaflet-tile-pane {
+  filter: sepia(1) hue-rotate(95deg) saturate(2.4) brightness(0.85) contrast(1.3);
+}
+
+/* Lat/long grid + vignette between the tiles (z 200) and the markers (z 400+). */
+.pulse-map::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.55) 100%),
+    linear-gradient(rgb(0 255 136 / 0.06) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(90deg, rgb(0 255 136 / 0.06) 1px, transparent 1px) 0 0 / 64px 64px;
+}
+
+/* Center crosshair. */
+.pulse-map::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 301;
+  pointer-events: none;
+  background:
+    linear-gradient(rgb(0 255 136 / 0.12), rgb(0 255 136 / 0.12)) center / 1px 100% no-repeat,
+    linear-gradient(rgb(0 255 136 / 0.12), rgb(0 255 136 / 0.12)) center / 100% 1px no-repeat;
 }
 
 .pulse-map .leaflet-control-attribution {
-  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  background: rgb(1 5 3 / 0.8);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 9px;
 }
 .pulse-map .leaflet-control-attribution a {
-  color: var(--accent);
+  color: var(--accent-dim);
 }
 
+.pulse-map .leaflet-bar {
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+}
 .pulse-map .leaflet-bar a,
 .pulse-map .leaflet-bar a:hover {
-  background: var(--surface);
-  color: var(--foreground);
+  background: var(--background);
+  color: var(--accent);
   border-bottom-color: var(--border);
+  border-radius: 0;
 }
-.pulse-map .leaflet-bar {
-  border: 1px solid var(--border);
+.pulse-map .leaflet-bar a:hover {
+  background: var(--surface-2);
 }
 
 .pulse-map .leaflet-tooltip {
-  background: var(--surface-2);
+  background: var(--background);
   color: var(--foreground);
-  border: 1px solid var(--border);
-  box-shadow: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 0;
+  box-shadow: 0 0 12px rgb(0 255 136 / 0.15);
   max-width: 280px;
   white-space: normal;
+  font-size: 11px;
 }
 .pulse-map .leaflet-tooltip-top::before {
-  border-top-color: var(--border);
+  border-top-color: var(--border-strong);
 }
 
 .pulse-map a:focus-visible {
@@ -40,6 +77,26 @@
   outline-offset: 2px;
 }
 
+/* Severity 4+ markers pulse. */
+@keyframes pulse-hot {
+  0%,
+  100% {
+    stroke-width: 1.5;
+    stroke-opacity: 1;
+  }
+  50% {
+    stroke-width: 9;
+    stroke-opacity: 0.25;
+  }
+}
+.pulse-map path.pulse-hot {
+  animation: pulse-hot 1.8s ease-in-out infinite;
+}
+.pulse-map path.pulse-selected {
+  filter: drop-shadow(0 0 8px var(--accent));
+}
+
+/* Cluster bubbles: square-ish target reticles. */
 .pulse-cluster {
   background: transparent;
 }
@@ -50,10 +107,21 @@
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
+  font-family: var(--font-mono);
   font-size: 11px;
-  font-weight: 600;
-  color: var(--foreground);
-  background: color-mix(in srgb, var(--c) 35%, var(--surface));
-  border: 2px solid var(--c);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 18%, transparent);
+  font-weight: 700;
+  color: var(--c);
+  background: rgb(1 8 5 / 0.85);
+  border: 1.5px solid var(--c);
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--c) 55%, transparent),
+    inset 0 0 8px color-mix(in srgb, var(--c) 35%, transparent);
+  text-shadow: 0 0 6px var(--c);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-map path.pulse-hot {
+    animation: none;
+    stroke-width: 3;
+  }
 }

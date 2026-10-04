@@ -5,12 +5,18 @@ import { usePathname, useRouter } from "next/navigation";
 import type { EventRow } from "@/lib/types";
 import { DEFAULT_FILTERS, type EventFilters, filtersKey, matchesFilters, serializeFilters } from "@/lib/events/filters";
 import { useLiveEvents } from "@/lib/events/use-live-events";
+import { summarizeSitrep } from "@/lib/events/sitrep";
+import type { Category } from "@/lib/types";
+import { HudPanel } from "@/components/hud/hud-panel";
 import { MapView } from "@/components/map/map-view";
 import type { FlyTarget } from "@/components/map/event-map";
 import { EventDrawer } from "./event-drawer";
 import { EventList } from "./event-list";
 import { FilterBar } from "./filter-bar";
+import { WINDOW_LABEL } from "./labels";
 import { LiveIndicator } from "./live-indicator";
+import { SitrepPanel } from "./sitrep-panel";
+import { Ticker } from "./ticker";
 
 const TICK_MS = 30_000;
 
@@ -77,25 +83,36 @@ export function Dashboard({
   );
 
   const closeDrawer = useCallback(() => setSelection(null), []);
+  const isolateCategory = useCallback(
+    (c: Category) => updateFilters({ ...activeFilters, categories: [c] }),
+    [activeFilters, updateFilters],
+  );
   const isFiltered = filtersKey(activeFilters) !== "";
+  const sitrep = useMemo(() => summarizeSitrep(visible), [visible]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
-      <section aria-label="Event map" className="relative h-[55vh] shrink-0 md:h-auto md:flex-1">
-        <MapView events={visible} selected={selected} flyTarget={flyTarget} onSelect={selectFromMap} />
-      </section>
+    <div className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-y-auto p-1.5 lg:grid lg:grid-cols-[300px_minmax(0,1fr)_380px] lg:grid-rows-[minmax(0,1fr)_auto] lg:gap-2 lg:overflow-hidden lg:p-2">
+      <MapView
+        events={visible}
+        selected={selected}
+        flyTarget={flyTarget}
+        onSelect={selectFromMap}
+        className="h-[55vh] shrink-0 lg:col-start-2 lg:row-start-1 lg:h-auto"
+      />
 
-      <aside
+      <HudPanel
+        as="aside"
         aria-label="Live event feed"
-        className="relative flex min-h-[60vh] flex-1 flex-col border-t border-border bg-surface md:min-h-0 md:w-[380px] md:flex-none md:border-l md:border-t-0"
+        title="Live feed"
+        code="03"
+        headingLevel={1}
+        right={<LiveIndicator status={status} count={visible.length} pending={isPending} />}
+        className="min-h-[70vh] flex-1 lg:col-start-3 lg:row-start-1 lg:min-h-0"
+        bodyClassName="relative flex flex-col"
       >
-        <header className="flex items-center justify-between border-b border-border px-3 py-2">
-          <h1 className="font-mono text-xs uppercase tracking-widest text-muted">Live feed</h1>
-          <LiveIndicator status={status} count={visible.length} pending={isPending} />
-        </header>
         <FilterBar filters={activeFilters} onChange={updateFilters} />
         {error && (
-          <p role="alert" className="border-b border-border bg-danger/10 px-3 py-2 text-xs text-danger">
+          <p role="alert" className="border-b border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
             {error} Live updates will still appear as they arrive.
           </p>
         )}
@@ -110,7 +127,21 @@ export function Dashboard({
           onResetFilters={() => updateFilters(DEFAULT_FILTERS)}
         />
         {selected && <EventDrawer event={selected} onClose={closeDrawer} />}
-      </aside>
+      </HudPanel>
+
+      <div className="shrink-0 lg:col-start-1 lg:row-start-1 lg:min-h-0">
+        <SitrepPanel
+          sitrep={sitrep}
+          now={now}
+          windowLabel={WINDOW_LABEL[activeFilters.window]}
+          onSelect={selectFromFeed}
+          onIsolateCategory={isolateCategory}
+        />
+      </div>
+
+      <div className="hidden lg:col-span-3 lg:row-start-2 lg:block">
+        <Ticker events={visible} onSelect={selectFromFeed} />
+      </div>
     </div>
   );
 }

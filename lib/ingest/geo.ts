@@ -257,6 +257,12 @@ export function countryByCode(code: string | null | undefined): GeoMatch | null 
   return c ? toMatch(c) : null;
 }
 
+/** Canonical English name from our table (first alias), e.g. "PS" → "Palestine". */
+export function countryDisplayName(code: string | null | undefined): string | null {
+  const c = code ? BY_CODE.get(code.toUpperCase()) : undefined;
+  return c ? c.names[0] : null;
+}
+
 /** Look up a country by an exact name/alias (case-insensitive), e.g. GDELT's `sourcecountry`. */
 export function countryByName(name: string | null | undefined): GeoMatch | null {
   if (!name) return null;

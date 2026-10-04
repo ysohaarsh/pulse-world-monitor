@@ -38,7 +38,7 @@ export default async function StatsPage({
       <div className="mx-auto w-full max-w-7xl px-4 py-6">
         <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold">Stats</h1>
+            <h1 className="glow text-lg font-bold uppercase tracking-[0.25em] text-accent">Stats</h1>
             <p className="text-sm text-muted">Global event activity over the {windowText}. Times in UTC.</p>
           </div>
           <WindowToggle current={window} />

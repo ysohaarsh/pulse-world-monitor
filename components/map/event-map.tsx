@@ -4,9 +4,9 @@ import "leaflet/dist/leaflet.css";
 import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
 import "./map.css";
 
-import { memo, useEffect, useMemo } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import L from "leaflet";
-import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap, useMapEvents } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { CATEGORY_META } from "@/lib/categories";
 import type { EventRow } from "@/lib/types";
@@ -76,6 +76,31 @@ function FlyTo({ target }: { target: FlyTarget | null }) {
   return null;
 }
 
+function formatCoord(value: number, pos: string, neg: string): string {
+  return `${Math.abs(value).toFixed(2).padStart(6, "0")}°${value >= 0 ? pos : neg}`;
+}
+
+/** HUD readout of the cursor position and zoom, top-right of the map. */
+function CursorReadout() {
+  const map = useMap();
+  const [pos, setPos] = useState<L.LatLng | null>(null);
+  const [zoom, setZoom] = useState(() => map.getZoom());
+  useMapEvents({
+    mousemove: (e) => setPos(e.latlng.wrap()),
+    mouseout: () => setPos(null),
+    zoomend: () => setZoom(map.getZoom()),
+  });
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute right-2 top-2 z-[1000] hidden border border-border-strong bg-background/80 px-2 py-1 font-mono text-[10px] tracking-wider text-accent sm:block"
+    >
+      {pos ? `LAT ${formatCoord(pos.lat, "N", "S")}  LON ${formatCoord(pos.lng, "E", "W")}` : "LAT ---.--°  LON ---.--°"}
+      <span className="ml-3 text-muted">Z{String(zoom).padStart(2, "0")}</span>
+    </div>
+  );
+}
+
 const Markers = memo(function Markers({
   events,
   onSelect,
@@ -98,7 +123,14 @@ const Markers = memo(function Markers({
             key={e.id}
             center={[e.lat, e.lng]}
             radius={severityRadius(e.severity)}
-            pathOptions={{ color, fillColor: color, fillOpacity: 0.55, weight: 1.5, opacity: 0.9 }}
+            pathOptions={{
+              color,
+              fillColor: color,
+              fillOpacity: 0.45,
+              weight: 1.5,
+              opacity: 1,
+              className: e.severity >= 4 ? "pulse-hot" : undefined,
+            }}
             eventHandlers={{ click: () => onSelect(e.id) }}
           >
             <Tooltip direction="top" offset={[0, -4]}>
@@ -114,7 +146,7 @@ const Markers = memo(function Markers({
 export default function EventMap({ events, selected, flyTarget, onSelect }: EventMapProps) {
   const selectedColor = selected ? CATEGORY_META[selected.category].color : undefined;
   const selectedOptions = useMemo(
-    () => ({ color: "#ffffff", weight: 3, fillColor: selectedColor, fillOpacity: 0.9 }),
+    () => ({ color: "#00ff88", weight: 2.5, fillColor: selectedColor, fillOpacity: 0.9, className: "pulse-selected" }),
     [selectedColor],
   );
 
@@ -141,6 +173,7 @@ export default function EventMap({ events, selected, flyTarget, onSelect }: Even
         />
       )}
       <FlyTo target={flyTarget} />
+      <CursorReadout />
     </MapContainer>
   );
 }

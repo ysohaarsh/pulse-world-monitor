@@ -13,15 +13,15 @@ export function KpiRow({ kpis }: { kpis: Kpis }) {
   return (
     <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {items.map((k) => (
-        <div key={k.label} className="rounded-lg border border-border bg-surface p-4">
-          <dt className="text-xs uppercase tracking-wide text-muted">{k.label}</dt>
-          <dd className={`mt-1 font-mono text-2xl font-semibold tabular-nums ${k.danger ? "text-danger" : ""}`}>
+        <div key={k.label} className="hud-panel p-4">
+          <dt className="hud-label">{k.label}</dt>
+          <dd className={`glow mt-1 text-3xl font-bold tabular-nums ${k.danger ? "text-danger" : "text-accent"}`}>
             {k.value}
           </dd>
         </div>
       ))}
-      <div className="rounded-lg border border-border bg-surface p-4">
-        <dt className="text-xs uppercase tracking-wide text-muted">Most active category</dt>
+      <div className="hud-panel p-4">
+        <dt className="hud-label">Most active category</dt>
         <dd className="mt-1 flex min-w-0 items-center gap-2 text-2xl font-semibold">
           {top ? (
             <>

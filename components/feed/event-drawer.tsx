@@ -43,12 +43,12 @@ export function EventDrawer({ event, onClose }: { event: EventRow; onClose: () =
       role="dialog"
       aria-modal="false"
       aria-labelledby={titleId}
-      className="absolute inset-0 z-10 flex flex-col bg-surface"
+      className="absolute inset-0 z-10 flex flex-col border-t-2 border-accent bg-surface"
     >
       <div className="flex items-center justify-between border-b border-border px-4 py-2">
-        <span className="flex items-center gap-2 text-xs" style={{ color: meta.color }}>
-          <span aria-hidden className="h-2 w-2 rounded-full" style={{ backgroundColor: meta.color }} />
-          {meta.label}
+        <span className="flex items-center gap-2 text-[11px] uppercase tracking-[0.2em]" style={{ color: meta.color }}>
+          <span aria-hidden className="h-2 w-2" style={{ backgroundColor: meta.color, boxShadow: `0 0 6px ${meta.color}` }} />
+          {meta.label} · Event detail
         </span>
         <button
           ref={closeRef}
@@ -64,12 +64,12 @@ export function EventDrawer({ event, onClose }: { event: EventRow; onClose: () =
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-        <h2 id={titleId} className="text-base font-semibold leading-snug text-foreground">
+        <h2 id={titleId} className="font-sans text-base font-semibold leading-snug text-foreground">
           {event.title}
         </h2>
-        {event.summary && <p className="mt-2 text-sm leading-relaxed text-muted">{event.summary}</p>}
+        {event.summary && <p className="mt-2 font-sans text-sm leading-relaxed text-muted">{event.summary}</p>}
 
-        <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
+        <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 border border-border bg-background/50 p-3 text-xs [&_dt]:uppercase [&_dt]:tracking-wider">
           <dt className="text-muted">Severity</dt>
           <dd className="flex items-center gap-2">
             <SeverityPips severity={event.severity} />
@@ -99,7 +99,7 @@ export function EventDrawer({ event, onClose }: { event: EventRow; onClose: () =
             href={event.url}
             target="_blank"
             rel="noopener noreferrer"
-            className={`mt-5 inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs text-accent hover:bg-surface-2 ${FOCUS_RING}`}
+            className={`mt-5 inline-flex items-center gap-1 border border-accent px-3 py-1.5 text-xs uppercase tracking-widest text-accent hover:bg-accent hover:text-black ${FOCUS_RING}`}
           >
             Open source <span aria-hidden>↗</span>
             <span className="sr-only">(opens in a new tab)</span>

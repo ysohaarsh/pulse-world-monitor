@@ -21,10 +21,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-sm px-4 py-10">
         <header className="mb-6">
-          <h1 className="text-xl font-semibold">Welcome to Pulse</h1>
+          <h1 className="glow text-lg font-bold uppercase tracking-[0.25em] text-accent">Welcome to Pulse</h1>
           <p className="text-sm text-muted">Sign in to save watchlists and get alerts for events you care about.</p>
         </header>
-        <section className="rounded-lg border border-border bg-surface p-5">
+        <section className="hud-panel p-5">
           {hasSupabaseEnv() ? (
             <LoginForm next={next} initialError={error} />
           ) : (

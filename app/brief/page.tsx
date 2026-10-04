@@ -33,7 +33,7 @@ export default async function BriefPage({
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[1fr_16rem]">
         <div className="flex min-w-0 flex-col gap-6">
           <header>
-            <h1 className="text-xl font-semibold">World Brief</h1>
+            <h1 className="glow text-lg font-bold uppercase tracking-[0.25em] text-accent">World Brief</h1>
             <p className="text-sm text-muted">A daily summary of what happened around the world.</p>
           </header>
 
@@ -54,7 +54,7 @@ export default async function BriefPage({
           )}
 
           {brief ? (
-            <article className="rounded-lg border border-border bg-surface p-5" aria-labelledby="brief-title">
+            <article className="hud-panel p-5" aria-labelledby="brief-title">
               <header className="mb-4 border-b border-border pb-3">
                 <h2 id="brief-title" className="font-semibold">
                   {formatUtc(brief.period_start)} – {formatUtc(brief.period_end)}
@@ -96,7 +96,7 @@ export default async function BriefPage({
             )
           )}
 
-          <section aria-labelledby="top-events-title" className="rounded-lg border border-border bg-surface p-5">
+          <section aria-labelledby="top-events-title" className="hud-panel p-5">
             <h2 id="top-events-title" className="font-semibold">
               Top events in this period
             </h2>
@@ -114,7 +114,7 @@ export default async function BriefPage({
         </div>
 
         <aside aria-labelledby="archive-title" className="lg:pt-14">
-          <h2 id="archive-title" className="mb-2 text-sm font-semibold">
+          <h2 id="archive-title" className="hud-label mb-2 !text-accent">
             Previous briefs
           </h2>
           {archive.length === 0 ? (

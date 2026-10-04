@@ -52,7 +52,7 @@ export default async function AlertsPage() {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-6">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold">Alerts</h1>
+            <h1 className="glow text-lg font-bold uppercase tracking-[0.25em] text-accent">Alerts</h1>
             <p className="text-sm text-muted">
               {unread > 0 ? `${unread} unread` : "All caught up"} · events matching your{" "}
               <Link href="/watchlists" className="text-accent hover:underline">
@@ -89,7 +89,7 @@ export default async function AlertsPage() {
         )}
 
         {alerts.length > 0 && (
-          <ul className="overflow-hidden rounded-lg border border-border bg-surface">
+          <ul className="overflow-hidden hud-panel">
             {alerts.map((a) => {
               const ev = a.events;
               const isUnread = a.read_at === null;

@@ -1,9 +1,16 @@
-// Small display helpers shared by /stats and /brief.
+// Small display helpers shared by /stats, /brief and the home SITREP panel.
+import { countryDisplayName } from "@/lib/ingest/geo";
 
 let regionNames: Intl.DisplayNames | null = null;
 
-/** ISO 3166-1 alpha-2 → English name; falls back to the raw code. */
+/**
+ * ISO 3166-1 alpha-2 → English name; falls back to the raw code.
+ * Prefers our own country table: Intl.DisplayNames differs between Node and browsers
+ * (e.g. "PS"), which breaks hydration when a client component renders the name.
+ */
 export function countryName(code: string): string {
+  const own = countryDisplayName(code);
+  if (own) return own;
   try {
     regionNames ??= new Intl.DisplayNames(["en"], { type: "region" });
     return regionNames.of(code.toUpperCase()) ?? code;
