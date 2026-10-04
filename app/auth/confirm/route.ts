@@ -23,11 +23,19 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type");
   const code = searchParams.get("code");
 
+  // Password recovery (next=/reset-password… or type=recovery) always lands on /reset-password, and
+  // failures go back to /forgot-password so the user can request a new link instead of being asked
+  // for the password they forgot. Its own `next` (where to go after the reset) is carried along.
+  let dest = new URL(next, request.url);
+  const recovery = type === "recovery" || dest.pathname === "/reset-password";
+  if (recovery && dest.pathname !== "/reset-password") dest = new URL("/reset-password", request.url);
+
   const fail = (code: LoginErrorCode, detail?: string) => {
     if (detail) console.warn("[auth/confirm]", code, detail);
-    const url = new URL("/login", request.url);
+    const url = new URL(recovery ? "/forgot-password" : "/login", request.url);
     url.searchParams.set("error", code);
-    if (next !== "/") url.searchParams.set("next", next);
+    const after = recovery ? safeNext(dest.searchParams.get("next")) : next;
+    if (after !== "/") url.searchParams.set("next", after);
     return NextResponse.redirect(url);
   };
 
@@ -47,5 +55,5 @@ export async function GET(request: NextRequest) {
     return fail("unavailable", err instanceof Error ? err.message : String(err));
   }
 
-  return NextResponse.redirect(new URL(next, request.url));
+  return NextResponse.redirect(dest);
 }
