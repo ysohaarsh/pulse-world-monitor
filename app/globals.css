@@ -1,26 +1,31 @@
 @import "tailwindcss";
 
+/* Pulse is a dark "situation room" UI. Use these tokens instead of raw colors. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #07090d;
+  --surface: #0e1219;
+  --surface-2: #151b25;
+  --border: #232b38;
+  --foreground: #e6e9ef;
+  --muted: #8b95a7;
+  --accent: #22d3ee;
+  --danger: #f43f5e;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
