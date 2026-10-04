@@ -45,6 +45,6 @@ Git author must stay the GitHub noreply address.
 1. GDELT quality: `categorize()` forces non-hazard titles to conflict/politics (e.g. economy stories → conflict); GDELT geocoder mixes same-name places (Georgia US → Austria). Consider carrying over classify() economy/politics and dropping events whose country isn't mentioned in the title.
 2. AI brief: Groq retired `llama-3.3-70b-versatile` on free tier (2026-08-16). Switch default to `openai/gpt-oss-120b` (raise max_tokens ~2000 or reasoning_effort "low"), add ordered fallback provider (Cloudflare Workers AI `@cf/meta/llama-3.3-70b-instruct-fp8-fast`), surface when brief falls back to "extractive". User must add LLM_API_KEY in Vercel.
 3. Password reset links only work in the requesting browser (PKCE). For cross-device: Supabase "Reset Password" email template → `<a href="{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=recovery">`.
-4. Dependabot PRs #1–#4 failing CI (TS 7, ESLint 10, @types/node 26 majors + a minor/patch group) — triage or configure to ignore majors.
+4. Dependabot: npm semver-majors are ignored in `.github/dependabot.yml` (TS 7 needs deps that accept it; ESLint 10 breaks `eslint-config-next`'s react plugin; `@types/node` should track the runtime Node, CI uses 22). Upgrade majors deliberately and remove the ignore when ready.
 5. Before real users: custom SMTP in Supabase Auth; consider CAPTCHA on signup.
 6. Rows ingested before the lean change have no `#publisher=` fragment → no lean badge until re-fetched (self-heals).
