@@ -31,12 +31,12 @@ export async function Nav() {
   const unread = user ? await unreadAlertCount(user.id) : 0;
 
   return (
-    <header className="flex h-12 shrink-0 items-center gap-6 border-b border-border bg-surface px-4">
-      <Link href="/" className="flex items-center gap-2 font-mono text-sm font-semibold tracking-widest">
+    <header className="flex h-12 shrink-0 items-center gap-3 whitespace-nowrap border-b border-border bg-surface px-4 sm:gap-6">
+      <Link href="/" className="flex shrink-0 items-center gap-2 font-mono text-sm font-semibold tracking-widest">
         <span className="h-2 w-2 animate-pulse rounded-full bg-accent" />
         PULSE
       </Link>
-      <nav aria-label="Main" className="flex gap-4 text-sm text-muted">
+      <nav aria-label="Main" className="flex min-w-0 gap-3 overflow-x-auto text-sm text-muted sm:gap-4">
         {LINKS.map((l) => (
           <Link key={l.href} href={l.href} className="hover:text-foreground">
             {l.label}
@@ -49,7 +49,7 @@ export async function Nav() {
           </Link>
         )}
       </nav>
-      <div className="ml-auto flex min-w-0 items-center gap-3 text-sm">
+      <div className="ml-auto flex shrink-0 items-center gap-3 text-sm">
         {user ? (
           <>
             <span className="hidden max-w-48 truncate text-muted sm:inline" title={user.email ?? undefined}>

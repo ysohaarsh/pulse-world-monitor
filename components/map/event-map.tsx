@@ -27,9 +27,11 @@ export interface EventMapProps {
   onSelect: (id: number) => void;
 }
 
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-const ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+// Esri dark gray canvas: free, keyless (CARTO basemaps now require an API key).
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas";
+const TILE_URL = `${ESRI}/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`;
+const LABELS_URL = `${ESRI}/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}`;
+const ATTRIBUTION = 'Tiles &copy; <a href="https://www.esri.com">Esri</a> &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
 
 export function severityRadius(severity: number): number {
   return 4 + severity * 2;
@@ -125,7 +127,8 @@ export default function EventMap({ events, selected, flyTarget, onSelect }: Even
       className="pulse-map h-full w-full"
       aria-label="Map of recent world events"
     >
-      <TileLayer url={TILE_URL} attribution={ATTRIBUTION} subdomains="abcd" maxZoom={19} />
+      <TileLayer url={TILE_URL} attribution={ATTRIBUTION} maxZoom={16} />
+      <TileLayer url={LABELS_URL} maxZoom={16} />
       <Markers events={events} onSelect={onSelect} />
       {selected && (
         // Rendered outside the cluster so the selection is always visible on top.
