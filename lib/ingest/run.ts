@@ -1,4 +1,5 @@
 import "server-only";
+import type { Json } from "@/lib/database.types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Source } from "@/lib/types";
 import { INGESTERS } from "./registry";
@@ -17,7 +18,7 @@ export async function runIngester(source: Source): Promise<IngestResult> {
     if (events.length > 0) {
       const { error } = await createAdminClient()
         .from("events")
-        .upsert(events, { onConflict: "source,external_id" });
+        .upsert(events.map((e) => ({ ...e, raw: e.raw as Json })), { onConflict: "source,external_id" });
       if (error) throw new Error(error.message);
     }
     return { source, fetched: events.length };
