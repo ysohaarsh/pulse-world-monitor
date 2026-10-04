@@ -1,4 +1,39 @@
-// TODO(auth): owned by the auth agent.
-export default function Page() {
-  return <div className="p-6 text-muted">Sign in — coming soon.</div>;
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { LoginForm } from "@/components/auth/login-form";
+import { getCurrentUser, hasSupabaseEnv } from "@/components/auth/session";
+import { safeNext } from "../auth/safe-next";
+
+export const metadata: Metadata = { title: "Sign in — Pulse" };
+
+function first(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  const params = await searchParams;
+  const next = safeNext(first(params.next));
+  const error = first(params.error)?.slice(0, 200);
+
+  if (await getCurrentUser()) redirect(next);
+
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-sm px-4 py-10">
+        <header className="mb-6">
+          <h1 className="text-xl font-semibold">Welcome to Pulse</h1>
+          <p className="text-sm text-muted">Sign in to save watchlists and get alerts for events you care about.</p>
+        </header>
+        <section className="rounded-lg border border-border bg-surface p-5">
+          {hasSupabaseEnv() ? (
+            <LoginForm next={next} initialError={error} />
+          ) : (
+            <p role="alert" className="text-sm text-muted">
+              Sign-in is unavailable: Supabase is not configured.
+            </p>
+          )}
+        </section>
+      </div>
+    </div>
+  );
 }
