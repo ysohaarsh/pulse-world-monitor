@@ -40,9 +40,8 @@ jobs:
       # When unset (e.g. PRs from forks), DB-dependent specs skip themselves.
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      # Throwaway per-run secret so the /api/ingest guard specs (401/400) can run.
+      # Throwaway per-run secret (>= 32 chars) so the /api/ingest guard specs (401/400) can run.
       # It is not the production secret, and without a service-role key ingestion can't write.
-      # Throwaway per-run secret; must be >= 32 chars (lib/cron-auth.ts fails closed on short secrets).
       CRON_SECRET: ci-e2e-throwaway-${{ github.run_id }}-${{ github.run_attempt }}-0123456789abcdef
     steps:
       - uses: actions/checkout@v7
