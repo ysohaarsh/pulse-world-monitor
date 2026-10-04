@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/auth/login-form";
 import { getCurrentUser, hasSupabaseEnv } from "@/components/auth/session";
+import { loginErrorMessage } from "@/app/auth/errors";
 import { safeNext } from "../auth/safe-next";
 
 export const metadata: Metadata = { title: "Sign in — Pulse" };
@@ -13,7 +14,7 @@ function first(v: string | string[] | undefined): string | undefined {
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
   const next = safeNext(first(params.next));
-  const error = first(params.error)?.slice(0, 200);
+  const error = loginErrorMessage(first(params.error));
 
   if (await getCurrentUser()) redirect(next);
 

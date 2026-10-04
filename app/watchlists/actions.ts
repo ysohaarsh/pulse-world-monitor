@@ -33,6 +33,13 @@ function validId(id: unknown): id is number {
   return typeof id === "number" && Number.isSafeInteger(id) && id > 0;
 }
 
+/** DB limit violations (see migration 20261005000000) get a friendly message; anything else is logged, not shown. */
+function saveErrorMessage(error: { code?: string; message: string }): string {
+  if (error.message.includes("watchlist limit reached")) return "You can have up to 20 watchlists. Delete one to add another.";
+  console.error("[watchlists] save failed:", error.code, error.message);
+  return error.code === "23514" ? "That watchlist exceeds the allowed limits." : "Couldn't save the watchlist. Please try again.";
+}
+
 export async function createWatchlist(prev: WatchlistFormState, formData: FormData): Promise<WatchlistFormState> {
   const user = await getCurrentUser();
   if (!user) redirect("/login?next=%2Fwatchlists");
@@ -44,7 +51,7 @@ export async function createWatchlist(prev: WatchlistFormState, formData: FormDa
 
   const supabase = await createClient();
   const { error } = await supabase.from("watchlists").insert({ ...parsed.data, user_id: user.id });
-  if (error) return { error: error.message, values: readWatchlistForm(formData), savedCount: prev.savedCount };
+  if (error) return { error: saveErrorMessage(error), values: readWatchlistForm(formData), savedCount: prev.savedCount };
 
   revalidatePath("/watchlists");
   return { savedCount: (prev.savedCount ?? 0) + 1 };
@@ -70,7 +77,7 @@ export async function updateWatchlist(
     .eq("id", id)
     .eq("user_id", user.id)
     .select("id");
-  if (error) return { error: error.message, values: readWatchlistForm(formData) };
+  if (error) return { error: saveErrorMessage(error), values: readWatchlistForm(formData) };
   if (!data || data.length === 0) return { error: "Watchlist not found.", values: readWatchlistForm(formData) };
 
   revalidatePath("/watchlists");
@@ -84,7 +91,10 @@ export async function deleteWatchlist(id: number): Promise<void> {
 
   const supabase = await createClient();
   const { error } = await supabase.from("watchlists").delete().eq("id", id).eq("user_id", user.id);
-  if (error) throw new Error(`Couldn't delete watchlist: ${error.message}`);
+  if (error) {
+    console.error("[watchlists] delete failed:", error.message);
+    throw new Error("Couldn't delete watchlist. Please try again.");
+  }
 
   revalidatePath("/watchlists");
   revalidatePath("/alerts");

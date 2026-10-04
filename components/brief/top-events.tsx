@@ -2,16 +2,8 @@ import { CATEGORY_META } from "@/lib/categories";
 import { countryName, formatUtc, SOURCE_LABELS } from "@/lib/stats/format";
 import type { Category } from "@/lib/types";
 import type { TopEvent } from "@/app/brief/queries";
+import { safeHttpUrl } from "@/lib/url";
 
-function safeHref(url: string | null): string | null {
-  if (!url) return null;
-  try {
-    const u = new URL(url);
-    return u.protocol === "https:" || u.protocol === "http:" ? u.toString() : null;
-  } catch {
-    return null;
-  }
-}
 
 export function TopEvents({ events }: { events: TopEvent[] }) {
   if (events.length === 0) {
@@ -25,7 +17,7 @@ export function TopEvents({ events }: { events: TopEvent[] }) {
     <ol className="flex flex-col divide-y divide-border">
       {events.map((e) => {
         const meta = CATEGORY_META[e.category as Category] ?? CATEGORY_META.other;
-        const href = safeHref(e.url);
+        const href = safeHttpUrl(e.url);
         return (
           <li key={e.id} className="flex items-start gap-3 py-3">
             <span aria-hidden className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: meta.color }} />

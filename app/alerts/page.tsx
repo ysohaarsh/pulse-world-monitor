@@ -6,6 +6,7 @@ import { BTN_SECONDARY, FOCUS } from "@/components/auth/styles";
 import { CATEGORY_META } from "@/lib/categories";
 import { createClient } from "@/lib/supabase/server";
 import type { Category } from "@/lib/types";
+import { safeHttpUrl } from "@/lib/url";
 import { markAlertRead, markAllAlertsRead } from "./actions";
 
 export const metadata: Metadata = { title: "Alerts — Pulse" };
@@ -94,6 +95,7 @@ export default async function AlertsPage() {
               const ev = a.events;
               const isUnread = a.read_at === null;
               const meta = ev ? CATEGORY_META[ev.category as Category] : undefined;
+              const href = safeHttpUrl(ev?.url);
               return (
                 <li
                   key={a.id}
@@ -112,8 +114,8 @@ export default async function AlertsPage() {
                         <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" aria-hidden />
                       )}
                       {isUnread && <span className="sr-only">Unread: </span>}
-                      {ev?.url ? (
-                        <a href={ev.url} target="_blank" rel="noopener noreferrer" className={`hover:underline ${FOCUS}`}>
+                      {href ? (
+                        <a href={href} target="_blank" rel="noopener noreferrer" className={`hover:underline ${FOCUS}`}>
                           {ev.title}
                         </a>
                       ) : (

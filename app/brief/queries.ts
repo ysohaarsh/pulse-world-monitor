@@ -32,7 +32,10 @@ export async function fetchWorldBriefs(selectedId: number | null): Promise<Brief
       .eq("scope", "world")
       .order("period_start", { ascending: false })
       .limit(ARCHIVE_SIZE + 1);
-    if (error) return { brief: null, archive: [], error: error.message };
+    if (error) {
+      console.error("[brief] query failed:", error.message);
+      return { brief: null, archive: [], error: "The brief database is unavailable right now." };
+    }
     const rows = list ?? [];
     const targetId = selectedId ?? rows[0]?.id ?? null;
     if (targetId === null) return { brief: null, archive: [], error: null };
@@ -48,7 +51,8 @@ export async function fetchWorldBriefs(selectedId: number | null): Promise<Brief
     const archive = rows.filter((r) => r.id !== targetId).slice(0, ARCHIVE_SIZE);
     return { brief: brief ?? null, archive, error: null };
   } catch (e) {
-    return { brief: null, archive: [], error: e instanceof Error ? e.message : "Unknown error" };
+    console.error("[brief] query failed:", e);
+    return { brief: null, archive: [], error: "The brief database is unavailable right now." };
   }
 }
 
@@ -68,9 +72,13 @@ export async function fetchTopEvents(
       .order("severity", { ascending: false })
       .order("occurred_at", { ascending: false })
       .limit(limit);
-    if (error) return { events: [], error: error.message };
+    if (error) {
+      console.error("[brief] top events query failed:", error.message);
+      return { events: [], error: "The brief database is unavailable right now." };
+    }
     return { events: (data ?? []) as TopEvent[], error: null };
   } catch (e) {
-    return { events: [], error: e instanceof Error ? e.message : "Unknown error" };
+    console.error("[brief] top events query failed:", e);
+    return { events: [], error: "The brief database is unavailable right now." };
   }
 }

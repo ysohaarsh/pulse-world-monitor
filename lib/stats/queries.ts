@@ -22,10 +22,14 @@ export async function fetchStatsEvents(window: StatsWindow, now: Date = new Date
       .gte("occurred_at", start.toISOString())
       .order("occurred_at", { ascending: false })
       .limit(STATS_EVENT_LIMIT);
-    if (error) return { events: [], truncated: false, error: error.message };
+    if (error) {
+      console.error("[stats] query failed:", error.message);
+      return { events: [], truncated: false, error: "The event database is unavailable right now." };
+    }
     const events = (data ?? []) as StatsEvent[];
     return { events, truncated: events.length >= STATS_EVENT_LIMIT, error: null };
   } catch (e) {
-    return { events: [], truncated: false, error: e instanceof Error ? e.message : "Unknown error" };
+    console.error("[stats] query failed:", e);
+    return { events: [], truncated: false, error: "The event database is unavailable right now." };
   }
 }

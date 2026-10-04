@@ -3,25 +3,18 @@
 import { useEffect, useId, useRef } from "react";
 import { format } from "date-fns";
 import { CATEGORY_META } from "@/lib/categories";
+import { safeHttpUrl } from "@/lib/url";
 import type { EventRow } from "@/lib/types";
 import { FOCUS_RING, SOURCE_LABEL } from "./labels";
 import { SeverityPips } from "./severity-pips";
 
-function isSafeHttpUrl(url: string | null): url is string {
-  if (!url) return false;
-  try {
-    const u = new URL(url);
-    return u.protocol === "http:" || u.protocol === "https:";
-  } catch {
-    return false;
-  }
-}
 
 export function EventDrawer({ event, onClose }: { event: EventRow; onClose: () => void }) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const meta = CATEGORY_META[event.category];
   const occurred = new Date(event.occurred_at);
+  const sourceUrl = safeHttpUrl(event.url);
 
   // Focus the close button on open and restore focus to whatever was focused before on close.
   useEffect(() => {
@@ -94,9 +87,9 @@ export function EventDrawer({ event, onClose }: { event: EventRow; onClose: () =
           </dd>
         </dl>
 
-        {isSafeHttpUrl(event.url) && (
+        {sourceUrl && (
           <a
-            href={event.url}
+            href={sourceUrl}
             target="_blank"
             rel="noopener noreferrer"
             className={`mt-5 inline-flex items-center gap-1 border border-accent px-3 py-1.5 text-xs uppercase tracking-widest text-accent hover:bg-accent hover:text-black ${FOCUS_RING}`}

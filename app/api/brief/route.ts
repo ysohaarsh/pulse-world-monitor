@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isCronAuthorized } from "@/lib/cron-auth";
 import { generateWorldBrief } from "@/lib/brief/generate";
 
 // LLM call has a 60s timeout; leave headroom for DB work.
@@ -9,8 +10,7 @@ export const maxDuration = 90;
 // POST /api/brief?force=1            -> regenerate even if that period already has a brief
 // POST /api/brief?end=<ISO 8601>     -> 24h ending at a specific time (testing/backfill)
 export async function POST(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!isCronAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

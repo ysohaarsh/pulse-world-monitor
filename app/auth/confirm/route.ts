@@ -1,6 +1,7 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { type LoginErrorCode } from "../errors";
 import { safeNext } from "../safe-next";
 
 const OTP_TYPES: readonly EmailOtpType[] = ["signup", "invite", "magiclink", "recovery", "email_change", "email"];
@@ -22,9 +23,10 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type");
   const code = searchParams.get("code");
 
-  const fail = (message: string) => {
+  const fail = (code: LoginErrorCode, detail?: string) => {
+    if (detail) console.warn("[auth/confirm]", code, detail);
     const url = new URL("/login", request.url);
-    url.searchParams.set("error", message.slice(0, 200));
+    url.searchParams.set("error", code);
     if (next !== "/") url.searchParams.set("next", next);
     return NextResponse.redirect(url);
   };
@@ -33,16 +35,16 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     if (tokenHash && isOtpType(type)) {
       const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
-      if (error) return fail(error.message);
+      if (error) return fail("link_invalid", error.message);
     } else if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
-      if (error) return fail(error.message);
+      if (error) return fail("link_invalid", error.message);
     } else {
-      const description = searchParams.get("error_description");
-      return fail(description ?? "That sign-in link is invalid or incomplete.");
+      // Supabase may append ?error_description=…; log it, never reflect it.
+      return fail(searchParams.has("error") ? "link_invalid" : "link_incomplete", searchParams.get("error_description") ?? undefined);
     }
-  } catch {
-    return fail("Sign-in is unavailable right now.");
+  } catch (err) {
+    return fail("unavailable", err instanceof Error ? err.message : String(err));
   }
 
   return NextResponse.redirect(new URL(next, request.url));

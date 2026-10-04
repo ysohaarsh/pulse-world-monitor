@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isCronAuthorized } from "@/lib/cron-auth";
 import { runIngester } from "@/lib/ingest/run";
 import { SOURCES, type Source } from "@/lib/types";
 
@@ -6,8 +7,7 @@ import { SOURCES, type Source } from "@/lib/types";
 // POST /api/ingest            -> all sources
 // POST /api/ingest?source=usgs -> one source
 export async function POST(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!isCronAuthorized(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
