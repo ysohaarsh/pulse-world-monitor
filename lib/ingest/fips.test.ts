@@ -6,6 +6,8 @@ describe("fipsToIso", () => {
     expect(fipsToIso("AU")).toBe("AT"); // Austria
     expect(fipsToIso("AS")).toBe("AU"); // Australia
     expect(fipsToIso("UK")).toBe("GB");
+    expect(fipsToIso("MO")).toBe("MA"); // Morocco
+    expect(fipsToIso("JA")).toBe("JP"); // Japan
     expect(fipsToIso("US")).toBe("US");
     expect(fipsToIso("GM")).toBe("DE");
     expect(fipsToIso("SP")).toBe("ES");

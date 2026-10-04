@@ -4,6 +4,7 @@ import { deflateRawSync } from "node:zlib";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   categorize,
+  isNewsworthyTitle,
   decodeEntities,
   GDELT_LASTUPDATE_URL,
   gdeltIngester,
@@ -203,11 +204,8 @@ describe("gdeltIngester.normalize", () => {
       "Yemeni armed forces strike Saudi Aramco oil facilities in Riyadh: Spokesman",
       "2 killed, dozens injured at Vienna, Georgia, block party shooting",
       "Lukashenko pledges unconditional loyalty to Putin as Belarus to 'mobilise troops' to Ukraine - London Business News",
-      "Putin's flesh blender: Russia suffers record losses for little strategic gain - London Business News",
       "Police 'locate' camp where abducted NYSC members are held, say IED threat delaying rescue - Latest News In Nigeria, Nigeria News Today, Your Online Nigerian Newspaper",
-      "Spanish police clear Ceuta beach where 3,000 migrants had set up camp",
       "Riot-hit France closes up to 500 schools amid fears of fresh violence",
-      "US marine arrested in Okinawa - Taipei Times",
       "Flash floods spark protests over slow relief in Sydney",
       'Police and protesters clash in Vienna & Graz – "night of anger"',
       "Pro-Palestine protesters bring traffic to standstill at Londons Oxford Circus",
@@ -269,9 +267,7 @@ describe("gdeltIngester.normalize", () => {
     expect(byTitle("Flash floods").country).toBe("AU"); // FIPS AS
     expect(byTitle("Police and protesters clash in Vienna").country).toBe("AT"); // FIPS AU
     expect(byTitle("Yemeni armed forces").country).toBe("YE"); // FIPS YM
-    expect(byTitle("Spanish police").country).toBe("MA"); // FIPS MO
     expect(byTitle("Police 'locate'").country).toBe("NG"); // FIPS NI
-    expect(byTitle("US marine").country).toBe("JP"); // FIPS JA
     expect(byTitle("Israel's IOF").country).toBe("IL"); // FIPS IS
     expect(byTitle("2 killed, dozens injured").country).toBe("US");
   });
@@ -371,5 +367,16 @@ describe("gdeltIngester.fetchRaw", () => {
 
     stub({ [GKG_URL]: () => new Response("PK but not really") });
     await expect(gdeltIngester.fetchRaw()).rejects.toThrow("unzip");
+  });
+});
+
+describe("isNewsworthyTitle", () => {
+  it("drops headlines with no recognisable news keyword", () => {
+    expect(isNewsworthyTitle("10 Best Far Side Comics About Crime")).toBe(false);
+    expect(isNewsworthyTitle("UA&P: Ube sector must improve planting materials, productivity")).toBe(false);
+  });
+  it("keeps conflict/politics/hazard headlines", () => {
+    expect(isNewsworthyTitle("Airstrike kills 12 in northern Gaza")).toBe(true);
+    expect(isNewsworthyTitle("Thousands protest election results in capital")).toBe(true);
   });
 });

@@ -239,6 +239,11 @@ export function passesNoiseGate(r: Pick<EventRow, "rootCode" | "geoType" | "numS
 
 const clampSeverity = (n: number): Severity => Math.min(5, Math.max(1, Math.round(n))) as Severity;
 
+/** True when the headline matches at least one classify() keyword (i.e. isn't "other"). */
+export function isNewsworthyTitle(title: string): boolean {
+  return classify(title).category !== "other";
+}
+
 export function categorize(rootCode: string, title: string): { category: Category; severity: Severity } {
   const c = classify(title);
   const category: Category = SPECIFIC_CATEGORIES.has(c.category)
@@ -282,6 +287,9 @@ export const gdeltIngester: Ingester<GdeltRaw> = {
       const title = titles.get(r.sourceUrl);
       const dateIso = parseGdeltDate(r.dateAdded);
       if (!title || !dateIso) continue;
+      // GDELT's CAMEO coding misfires often ("10 Best Far Side Comics About Crime" as a fight);
+      // only keep events whose headline itself reads as news our classifier recognises.
+      if (!isNewsworthyTitle(title)) continue;
 
       const { category, severity } = categorize(r.rootCode, title);
       const where = r.geoFullName ? `${r.geoFullName} · ` : "";
