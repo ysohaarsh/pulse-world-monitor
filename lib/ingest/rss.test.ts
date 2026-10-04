@@ -1,7 +1,17 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { decodeEntities, parseRss, RSS_FEEDS, rssIngester, toSummary, type RssFeedRaw } from "./rss";
+import {
+  cleanTitle,
+  decodeEntities,
+  MAX_ITEMS_PER_FEED,
+  parseFeedDate,
+  parseRss,
+  RSS_FEEDS,
+  rssIngester,
+  toSummary,
+  type RssFeedRaw,
+} from "./rss";
 
 const fixture = (name: string) => readFileSync(join(__dirname, "__fixtures__", name), "utf8");
 
@@ -110,7 +120,8 @@ describe("toSummary", () => {
 describe("rssIngester.normalize", () => {
   it("normalizes edge-case items: skips bad date/no title, dedupes, keeps no-country items", () => {
     const events = rssIngester.normalize([{ feed: "edge", xml: EDGE_XML }]);
-    expect(events.map((e) => e.external_id)).toEqual(["https://example.com/a?x=1&y=2", "c-guid"]);
+    // Non-URL guids are namespaced by feed.
+    expect(events.map((e) => e.external_id)).toEqual(["https://example.com/a?x=1&y=2", "edge:c-guid"]);
 
     expect(events[0]).toMatchObject({
       source: "rss",
@@ -123,7 +134,7 @@ describe("rssIngester.normalize", () => {
       occurred_at: "2026-10-04T08:00:00.000Z",
     });
     expect(events[1]).toMatchObject({
-      external_id: "c-guid",
+      external_id: "edge:c-guid",
       url: null,
       summary: null,
       country: null,
@@ -178,11 +189,154 @@ describe("rssIngester.fetchRaw", () => {
         if (url.includes("bbci")) return new Response(fixture("rss.bbc.xml"), { status: 200 });
         if (url.includes("npr")) return new Response("nope", { status: 503 });
         if (url.includes("guardian")) throw new Error("network down");
+        if (url.includes("apnews")) return new Response("rate limited", { status: 429 });
         return new Response(fixture("rss.aljazeera.xml"), { status: 200 });
       }),
     );
     const raw = await rssIngester.fetchRaw();
-    expect(raw.map((r) => r.feed)).toEqual(["bbc", "aljazeera"]);
-    expect(RSS_FEEDS).toHaveLength(4);
+    expect(raw.map((r) => r.feed)).toEqual(["bbc", "aljazeera", "dw", "france24", "crisisgroup", "reuters"]);
+    expect(RSS_FEEDS).toHaveLength(9);
+  });
+
+  it("configures every feed over https with a unique name", () => {
+    expect(new Set(RSS_FEEDS.map((f) => f.feed)).size).toBe(RSS_FEEDS.length);
+    for (const f of RSS_FEEDS) expect(f.url.startsWith("https://")).toBe(true);
+  });
+});
+
+describe("parseFeedDate", () => {
+  it("parses RFC 822 and Crisis Group's Drupal format (as UTC)", () => {
+    expect(new Date(parseFeedDate("Sun, 4 Oct 2026 14:24:00 GMT")).toISOString()).toBe("2026-10-04T14:24:00.000Z");
+    expect(new Date(parseFeedDate("Friday, September 25, 2026 - 15:56")).toISOString()).toBe(
+      "2026-09-25T15:56:00.000Z",
+    );
+    expect(parseFeedDate("not a date")).toBeNaN();
+  });
+});
+
+describe("cleanTitle", () => {
+  it("strips the Google News publisher suffix", () => {
+    expect(cleanTitle("Quake hits Japan - Reuters", "Reuters", true)).toBe("Quake hits Japan");
+    expect(cleanTitle("Quake hits Japan - AP News", "AP News", true)).toBe("Quake hits Japan");
+    // No <source>: Google News feeds still drop the last " - X" segment.
+    expect(cleanTitle("Kyiv - a city under fire - AP News", null, true)).toBe("Kyiv - a city under fire");
+  });
+  it("leaves other titles alone", () => {
+    expect(cleanTitle("Kyiv - a city under fire", null)).toBe("Kyiv - a city under fire");
+    expect(cleanTitle("Reuters", "Reuters", true)).toBe("Reuters");
+  });
+});
+
+describe("new feeds", () => {
+  const norm = (feed: string, file: string) => rssIngester.normalize([{ feed, xml: fixture(file) }]);
+
+  it("parses DW (opaque numeric guids are namespaced)", () => {
+    const events = norm("dw", "rss.dw.xml");
+    expect(events).toHaveLength(3);
+    expect(events[0]).toMatchObject({
+      external_id: "dw:79534734",
+      title: "Germany's Merz visits Kyiv as Russia strikes bridge",
+      url: "https://www.dw.com/en/germany-s-merz-visits-kyiv-as-russia-strikes-bridge/a-79534734?maca=en-rss-en-all-1573-xml-mrss",
+      occurred_at: "2026-10-04T14:24:00.000Z",
+    });
+    expect(events[0].summary).toMatch(/^As air raid sirens sounded in Kyiv/);
+    const spain = events.find((e) => e.title.startsWith("Torrential rain"))!;
+    expect(spain).toMatchObject({ country: "ES", category: "flood" });
+  });
+
+  it("parses France 24", () => {
+    const events = norm("france24", "rss.france24.xml");
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      external_id: "france24:ff58f06e-bffe-11f1-a9b4-214dbeca3573",
+      title: 'German Chancellor in Kyiv: "Ukraine will need our support"',
+      country: "UA",
+      occurred_at: "2026-10-04T14:37:56.000Z",
+    });
+    expect(events[0].summary).toMatch(/^German Chancellor Friedrich Merz visited Ukraine/);
+  });
+
+  it("parses Crisis Group: Drupal dates, drops non-English editions", () => {
+    const events = norm("crisisgroup", "rss.crisisgroup.xml");
+    expect(events.map((e) => e.title)).toEqual([
+      "Updates from the UN General Assembly 2026",
+      "Arresting the Dangerous Descent Back into War in Northern Ethiopia",
+    ]);
+    expect(events[0]).toMatchObject({ external_id: "crisisgroup:28555", occurred_at: "2026-09-25T15:56:00.000Z" });
+    expect(events[1]).toMatchObject({ country: "ET", category: "conflict" });
+    expect(events.every((e) => !e.url!.includes("/fr/"))).toBe(true);
+  });
+
+  it("parses Google News feeds: clean titles, no echo summary, redirect links, newest first", () => {
+    const reuters = norm("reuters", "rss.googlenews-reuters.xml");
+    expect(reuters.map((e) => e.title)).toEqual([
+      "EXCLUSIVE: Saudi Arabia quietly shelving NEOM Stadium, one of 2034 World Cup venues",
+      "Trump names intelligence chief Clayton as AI czar, to head task force",
+      "AI's race to transform the world before the money runs out",
+    ]);
+    expect(reuters[0]).toMatchObject({ summary: null, country: "SA", occurred_at: "2026-10-04T08:03:13.000Z" });
+    for (const e of reuters) {
+      expect(e.external_id).toMatch(/^reuters:CBMi/);
+      expect(e.url).toMatch(/^https:\/\/news\.google\.com\/rss\/articles\//);
+      expect(e.title).not.toMatch(/ - Reuters$/);
+    }
+
+    const ap = norm("ap", "rss.googlenews-ap.xml");
+    expect(ap.map((e) => e.title)).toEqual([
+      "Daily life around the world, in photos",
+      "Heat-trapping gas once frozen in Arctic ground is slowly leaking and warming the planet",
+    ]);
+    expect(ap.every((e) => e.summary === null && e.external_id.startsWith("ap:"))).toBe(true);
+  });
+
+  it(`caps each feed to its newest ${MAX_ITEMS_PER_FEED} items`, () => {
+    const items = Array.from(
+      { length: 40 },
+      (_, i) =>
+        `<item><title>Story ${i}</title><link>https://example.com/${i}</link>` +
+        `<pubDate>${new Date(Date.UTC(2026, 9, 1, i)).toUTCString()}</pubDate></item>`,
+    ).join("");
+    const big = `<rss><channel>${items}</channel></rss>`;
+    const small = `<rss><channel><item><title>Other</title><link>https://example.org/x</link><pubDate>Sun, 04 Oct 2026 08:00:00 GMT</pubDate></item></channel></rss>`;
+    const events = rssIngester.normalize([
+      { feed: "big", xml: big },
+      { feed: "small", xml: small },
+    ]);
+    const fromBig = events.filter((e) => e.external_id.startsWith("https://example.com/"));
+    expect(fromBig).toHaveLength(MAX_ITEMS_PER_FEED);
+    expect(fromBig[0].title).toBe("Story 39");
+    expect(fromBig.at(-1)!.title).toBe(`Story ${40 - MAX_ITEMS_PER_FEED}`);
+    expect(events.at(-1)!.title).toBe("Other");
+  });
+
+  it("dedupes URL guids across feeds (first feed wins) and drops non-http links", () => {
+    const a = `<rss><channel><item><title>Shared story</title><guid>https://example.com/shared</guid><link>https://example.com/shared</link><pubDate>Sun, 04 Oct 2026 08:00:00 GMT</pubDate></item></channel></rss>`;
+    const b = `<rss><channel>
+      <item><title>Shared story again</title><guid>https://example.com/shared</guid><pubDate>Sun, 04 Oct 2026 09:00:00 GMT</pubDate></item>
+      <item><title>Same opaque id</title><guid>123</guid><pubDate>Sun, 04 Oct 2026 09:00:00 GMT</pubDate></item>
+      <item><title>Script link</title><guid>456</guid><link>javascript:alert(1)</link><pubDate>Sun, 04 Oct 2026 09:00:00 GMT</pubDate></item>
+    </channel></rss>`;
+    const c = `<rss><channel><item><title>Different feed, same opaque id</title><guid>123</guid><pubDate>Sun, 04 Oct 2026 09:00:00 GMT</pubDate></item></channel></rss>`;
+    const events = rssIngester.normalize([
+      { feed: "a", xml: a },
+      { feed: "b", xml: b },
+      { feed: "c", xml: c },
+    ]);
+    expect(events.map((e) => e.external_id)).toEqual(["https://example.com/shared", "b:123", "b:456", "c:123"]);
+    expect(events[0].title).toBe("Shared story");
+    expect(events.find((e) => e.external_id === "b:456")!.url).toBeNull();
+  });
+
+  it("keeps all fixtures together within the per-feed cap and unique", () => {
+    const events = rssIngester.normalize([
+      ...FEEDS,
+      { feed: "dw", xml: fixture("rss.dw.xml") },
+      { feed: "france24", xml: fixture("rss.france24.xml") },
+      { feed: "crisisgroup", xml: fixture("rss.crisisgroup.xml") },
+      { feed: "reuters", xml: fixture("rss.googlenews-reuters.xml") },
+      { feed: "ap", xml: fixture("rss.googlenews-ap.xml") },
+    ]);
+    expect(events).toHaveLength(10 + 3 + 2 + 2 + 3 + 2);
+    expect(new Set(events.map((e) => e.external_id)).size).toBe(events.length);
   });
 });
