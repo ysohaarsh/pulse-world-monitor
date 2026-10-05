@@ -14,6 +14,8 @@ export interface PeriodStats {
 export interface ExtractiveOptions {
   /** Max bullets per category section. */
   perSection?: number;
+  /** Sports headlines for a closing `## Sports` section (not counted in the stats). */
+  sports?: readonly BriefEvent[];
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -26,12 +28,13 @@ function cleanTitle(title: string): string {
 /**
  * Deterministic, no-LLM brief: a lead line with counts, then one section per
  * category (most severe category first) with the top selected events as bullets.
+ * Sports headlines, if any, follow in a final `## Sports` section.
  * Output uses the same markdown subset as LLM briefs. Pure.
  */
 export function buildExtractiveBrief(
   selected: readonly BriefEvent[],
   stats: PeriodStats,
-  { perSection = 5 }: ExtractiveOptions = {},
+  { perSection = 5, sports = [] }: ExtractiveOptions = {},
 ): string {
   const lead =
     `${plural(stats.total, "event")} in the last 24h; ${stats.highSeverity} high-severity.` +
@@ -53,6 +56,10 @@ export function buildExtractiveBrief(
       const country = countryName(e.country);
       lines.push(`- ${cleanTitle(e.title)}${country ? ` — ${country}` : ""}`);
     }
+  }
+  if (sports.length > 0) {
+    lines.push("", "## Sports", "");
+    for (const e of sports.slice(0, perSection)) lines.push(`- ${cleanTitle(e.title)}`);
   }
   return lines.join("\n");
 }

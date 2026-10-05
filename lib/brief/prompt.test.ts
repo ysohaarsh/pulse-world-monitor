@@ -38,6 +38,7 @@ describe("buildBriefPrompt", () => {
     expect(system.content).toContain("## Conflict & Security");
     expect(system.content).toContain("## Natural Hazards");
     expect(system.content).toContain("## Politics & Economy");
+    expect(system.content).toContain("## Sports");
     expect(system.content).toContain("`- ` bullets");
     expect(system.content).toMatch(/Omit any section/);
     expect(system.content).toMatch(/country names/i);
@@ -54,6 +55,19 @@ describe("buildBriefPrompt", () => {
     expect(user.content).toContain("severity 5/5");
     expect(user.content).toContain("gdelt");
     expect(user.content).toContain("2026-10-03T08:00:00.000Z");
+  });
+});
+
+describe("buildBriefPrompt with sports", () => {
+  it("lists sports headlines separately from the core events", () => {
+    const sports = [ev({ title: "Cup  final shock", category: "sports", source: "sports", severity: 1, occurred_at: "S1" })];
+    const [, u] = buildBriefPrompt({ events, sports, periodStart: "a", periodEnd: "b" });
+    expect(u.content).toContain("3 most important events");
+    expect(u.content).toMatch(/Sports headlines \(1, most recent first; use them only for the ## Sports section\):\n1\. S1 \| Cup final shock$/);
+  });
+
+  it("omits the sports block when there are none", () => {
+    expect(user.content).not.toContain("Sports headlines");
   });
 });
 

@@ -5,12 +5,14 @@ import { buildExtractiveBrief, EXTRACTIVE_MODEL } from "./fallback";
 import { defaultPeriod, periodEndingAt } from "./period";
 import { buildBriefPrompt } from "./prompt";
 import { completeChat, llmConfigFromEnv } from "./provider";
-import { selectEvents } from "./select";
+import { selectEvents, selectSportsEvents } from "./select";
 import { HIGH_SEVERITY, type BriefEvent } from "./types";
 
 export const WORLD_SCOPE = "world";
 /** Upper bound on rows loaded for selection (most severe/recent first). */
 const LOAD_LIMIT = 1000;
+/** Upper bound on sports rows loaded for the Sports section (most recent first). */
+const SPORTS_LOAD_LIMIT = 100;
 
 export interface GenerateOptions {
   /** Regenerate even if a brief for this period already exists. */
@@ -59,13 +61,14 @@ export async function generateWorldBrief({ force = false, periodEnd }: GenerateO
   }
 
   // Half-open window [start, end) so consecutive periods don't double count.
-  const [rowsRes, highRes] = await Promise.all([
+  const [rowsRes, highRes, sportsRes] = await Promise.all([
     db
       .from("events")
       .select("id, title, category, severity, country, occurred_at, source", { count: "exact" })
       .gte("occurred_at", period_start)
       .lt("occurred_at", period_end)
-      // Sports is an opt-in side feed: never part of the World Brief (selectEvents drops it too).
+      // Sports is an opt-in side feed: kept out of the core events and counts (selectEvents drops it too)
+      // and loaded separately below for the brief's own Sports section.
       .neq("category", "sports")
       .neq("source", "sports")
       .order("severity", { ascending: false })
@@ -79,34 +82,48 @@ export async function generateWorldBrief({ force = false, periodEnd }: GenerateO
       .neq("category", "sports")
       .neq("source", "sports")
       .gte("severity", HIGH_SEVERITY),
+    db
+      .from("events")
+      .select("id, title, category, severity, country, occurred_at, source")
+      .gte("occurred_at", period_start)
+      .lt("occurred_at", period_end)
+      .or("category.eq.sports,source.eq.sports")
+      .order("occurred_at", { ascending: false })
+      .limit(SPORTS_LOAD_LIMIT),
   ]);
   if (rowsRes.error) throw new Error(`Failed to load events: ${rowsRes.error.message}`);
   if (highRes.error) throw new Error(`Failed to count events: ${highRes.error.message}`);
+  if (sportsRes.error) throw new Error(`Failed to load sports events: ${sportsRes.error.message}`);
 
-  const events: BriefEvent[] = (rowsRes.data ?? []).map((r) => ({
+  const toBriefEvent = (r: NonNullable<typeof rowsRes.data>[number]): BriefEvent => ({
     ...r,
     category: r.category as Category,
     severity: r.severity as Severity,
     source: r.source as Source,
-  }));
+  });
+  const events = (rowsRes.data ?? []).map(toBriefEvent);
   const selected = selectEvents(events);
+  const sports = selectSportsEvents((sportsRes.data ?? []).map(toBriefEvent));
   const stats = { total: rowsRes.count ?? events.length, highSeverity: highRes.count ?? 0 };
 
   let content: string;
   let model: string;
   let llm_error: string | undefined;
   const config = llmConfigFromEnv();
-  if (config && selected.length > 0) {
+  if (config && selected.length + sports.length > 0) {
     try {
-      ({ content, model } = await completeChat(buildBriefPrompt({ events: selected, periodStart: period_start, periodEnd: period_end }), config));
+      ({ content, model } = await completeChat(
+        buildBriefPrompt({ events: selected, sports, periodStart: period_start, periodEnd: period_end }),
+        config,
+      ));
     } catch (err) {
       llm_error = err instanceof Error ? err.message : String(err);
       console.error("[brief] LLM failed, using extractive fallback:", llm_error);
-      content = buildExtractiveBrief(selected, stats);
+      content = buildExtractiveBrief(selected, stats, { sports });
       model = EXTRACTIVE_MODEL;
     }
   } else {
-    content = buildExtractiveBrief(selected, stats);
+    content = buildExtractiveBrief(selected, stats, { sports });
     model = EXTRACTIVE_MODEL;
   }
 

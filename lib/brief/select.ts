@@ -52,7 +52,7 @@ export function compareImportance(a: BriefEvent, b: BriefEvent): number {
  * Pick the most important events for a brief: ordered by severity then recency,
  * with per-category and per-source caps so no single feed dominates, and with
  * near-identical titles (the same story from several outlets) collapsed.
- * Sports items (an opt-in side feed) are never picked.
+ * Sports items (an opt-in side feed) are never picked here; see `selectSportsEvents`.
  * Pure; does not mutate its input.
  */
 export function selectEvents(events: readonly BriefEvent[], options: SelectOptions = {}): BriefEvent[] {
@@ -70,6 +70,22 @@ export function selectEvents(events: readonly BriefEvent[], options: SelectOptio
     picked.push(e);
     byCategory.set(e.category, (byCategory.get(e.category) ?? 0) + 1);
     bySource.set(e.source, (bySource.get(e.source) ?? 0) + 1);
+  }
+  return picked;
+}
+
+/**
+ * Pick sports headlines for the brief's own Sports section: sports items only, most
+ * recent first (they are all severity 1), with near-identical titles collapsed.
+ * Pure; does not mutate its input.
+ */
+export function selectSportsEvents(events: readonly BriefEvent[], { max = 8 }: { max?: number } = {}): BriefEvent[] {
+  const picked: BriefEvent[] = [];
+  for (const e of [...events].sort(compareImportance)) {
+    if (picked.length >= max) break;
+    if (!isSportsEvent(e)) continue;
+    if (picked.some((p) => isNearDuplicate(p.title, e.title))) continue;
+    picked.push(e);
   }
   return picked;
 }

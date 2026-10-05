@@ -24,6 +24,13 @@ test.describe("brief", () => {
       await expect(top.getByRole("listitem").first().or(top.getByText("No events recorded in this period yet."))).toBeVisible();
     }
 
+    const sports = page.getByRole("region", { name: "Sports in this period" });
+    await expect(sports).toBeVisible();
+    if (HAS_DB) {
+      await expect(sports.getByRole("listitem").first().or(sports.getByText("No sports headlines in this period."))).toBeVisible();
+      await expect(sports.getByRole("alert")).toHaveCount(0);
+    }
+
     await expect(page.getByRole("complementary").getByRole("heading", { name: "Previous briefs" })).toBeVisible();
     expect(errors, errors.join("\n")).toEqual([]);
   });

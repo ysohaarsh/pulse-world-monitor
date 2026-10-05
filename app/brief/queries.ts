@@ -85,3 +85,30 @@ export async function fetchTopEvents(
     return { events: [], error: "The brief database is unavailable right now." };
   }
 }
+
+/** The most recent sports headlines in [start, end] for the brief page's Sports panel. */
+export async function fetchSportsHeadlines(
+  start: string,
+  end: string,
+  limit = 8,
+): Promise<{ events: TopEvent[]; error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("events")
+      .select("id, title, category, severity, occurred_at, url, country, source")
+      .gte("occurred_at", start)
+      .lte("occurred_at", end)
+      .or("category.eq.sports,source.eq.sports")
+      .order("occurred_at", { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error("[brief] sports query failed:", error.message);
+      return { events: [], error: "The brief database is unavailable right now." };
+    }
+    return { events: (data ?? []) as TopEvent[], error: null };
+  } catch (e) {
+    console.error("[brief] sports query failed:", e);
+    return { events: [], error: "The brief database is unavailable right now." };
+  }
+}

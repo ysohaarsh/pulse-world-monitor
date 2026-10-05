@@ -8,6 +8,8 @@ export interface ChatMessage {
 
 export interface PromptInput {
   events: readonly BriefEvent[];
+  /** Sports headlines, listed separately for the brief's own Sports section. */
+  sports?: readonly BriefEvent[];
   periodStart: string;
   periodEnd: string;
 }
@@ -22,7 +24,8 @@ export const SYSTEM_PROMPT = [
   "Format (plain markdown, only these elements: paragraphs, `#`/`##` headings, `- ` bullets, **bold**; no links, tables, code or numbered lists):",
   "1. Start with `# Overview` followed by a 1-2 sentence lead paragraph summarizing the most significant developments.",
   "2. Then sections, in this order, each a `## ` heading followed by `- ` bullets:",
-  "   `## Conflict & Security`, `## Natural Hazards`, `## Politics & Economy`, `## Health`, `## Other`.",
+  "   `## Conflict & Security`, `## Natural Hazards`, `## Politics & Economy`, `## Health`, `## Other`, `## Sports`.",
+  "   `## Sports` covers ONLY the separately listed sports headlines (2-5 short bullets); never put sports in the other sections or the Overview.",
   "3. Omit any section that has no relevant events. Do not write placeholder text like \"nothing to report\".",
   "Output only the brief, with no preamble or closing remarks.",
 ].join("\n");
@@ -36,14 +39,22 @@ export function formatEventLine(e: BriefEvent, index: number): string {
 }
 
 /** Build the chat messages for the World Brief. Pure. */
-export function buildBriefPrompt({ events, periodStart, periodEnd }: PromptInput): ChatMessage[] {
-  const user = [
+export function buildBriefPrompt({ events, sports = [], periodStart, periodEnd }: PromptInput): ChatMessage[] {
+  const lines = [
     `Write the World Brief for ${periodStart} to ${periodEnd} (UTC).`,
     `Below are the ${events.length} most important events in that period, most severe first.`,
     "Format: N. [category] severity S/5 | country | time (UTC) | source | title",
     "",
     ...events.map(formatEventLine),
-  ].join("\n");
+  ];
+  if (sports.length > 0) {
+    lines.push(
+      "",
+      `Sports headlines (${sports.length}, most recent first; use them only for the ## Sports section):`,
+      ...sports.map((e, i) => `${i + 1}. ${e.occurred_at} | ${e.title.replace(/\s+/g, " ").trim()}`),
+    );
+  }
+  const user = lines.join("\n");
   return [
     { role: "system", content: SYSTEM_PROMPT },
     { role: "user", content: user },
