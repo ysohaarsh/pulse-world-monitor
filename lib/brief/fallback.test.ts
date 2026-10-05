@@ -53,6 +53,18 @@ describe("buildExtractiveBrief", () => {
     expect(buildExtractiveBrief([], { total: 1, highSeverity: 0 })).toContain("1 event in");
   });
 
+  it("appends a Sports section after the core sections, outside the counts", () => {
+    const sports = [
+      ev({ title: "Record transfer agreed", category: "sports", source: "sports", severity: 1, country: "GB" }),
+      ev({ title: "**Cup** final shock", category: "sports", source: "sports", severity: 1 }),
+    ];
+    const out = buildExtractiveBrief(selected, { total: 142, highSeverity: 6 }, { sports });
+    expect(out.startsWith("# Overview\n\n142 events in the last 24h; 6 high-severity.")).toBe(true);
+    expect(out.endsWith("## Sports\n\n- Record transfer agreed\n- Cup final shock")).toBe(true);
+    expect(out.indexOf("## Politics")).toBeLessThan(out.indexOf("## Sports"));
+    expect(md).not.toContain("## Sports");
+  });
+
   it("exports the model name", () => {
     expect(EXTRACTIVE_MODEL).toBe("extractive");
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isNearDuplicate, normalizeTitle, selectEvents } from "./select";
+import { isNearDuplicate, normalizeTitle, selectEvents, selectSportsEvents } from "./select";
 import { ev } from "./test-utils";
 
 describe("normalizeTitle", () => {
@@ -87,5 +87,22 @@ describe("selectEvents", () => {
     selectEvents(input);
     expect(input).toEqual(copy);
     expect(selectEvents([])).toEqual([]);
+  });
+});
+
+describe("selectSportsEvents", () => {
+  it("keeps only sports items, most recent first, deduped and capped", () => {
+    const older = ev({ title: "Cup final shock", category: "sports", source: "sports", severity: 1, occurred_at: "2026-10-03T08:00:00Z" });
+    const newer = ev({ title: "Record transfer agreed", category: "sports", source: "sports", severity: 1, occurred_at: "2026-10-03T11:00:00Z" });
+    const dupe = ev({ title: "Cup final shock!", category: "sports", source: "sports", severity: 1, occurred_at: "2026-10-03T07:00:00Z" });
+    const mislabelled = ev({ title: "Derby result", category: "sports", source: "rss", severity: 1, occurred_at: "2026-10-03T09:00:00Z" });
+    const quake = ev({ title: "M 6.0 quake", category: "earthquake", source: "usgs", severity: 4 });
+    expect(selectSportsEvents([older, quake, dupe, newer, mislabelled]).map((e) => e.id)).toEqual([
+      newer.id,
+      mislabelled.id,
+      older.id,
+    ]);
+    expect(selectSportsEvents([older, newer, mislabelled], { max: 2 })).toHaveLength(2);
+    expect(selectSportsEvents([])).toEqual([]);
   });
 });

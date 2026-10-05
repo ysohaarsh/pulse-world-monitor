@@ -5,12 +5,20 @@ import type { TopEvent } from "@/app/brief/queries";
 import { safeHttpUrl } from "@/lib/url";
 import { LeanBadge } from "@/components/feed/lean-badge";
 
-
-export function TopEvents({ events }: { events: TopEvent[] }) {
+export function TopEvents({
+  events,
+  emptyText = "No events recorded in this period yet.",
+  showSeverity = true,
+}: {
+  events: TopEvent[];
+  emptyText?: string;
+  /** Sports items are all severity 1, so the Sports panel hides the badge. */
+  showSeverity?: boolean;
+}) {
   if (events.length === 0) {
     return (
       <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
-        No events recorded in this period yet.
+        {emptyText}
       </p>
     );
   }
@@ -49,13 +57,15 @@ export function TopEvents({ events }: { events: TopEvent[] }) {
                 <LeanBadge url={e.url} className="ml-2 align-middle" />
               </p>
             </div>
-            <span
-              className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs tabular-nums ${
-                e.severity >= 4 ? "border-danger/50 text-danger" : "border-border text-muted"
-              }`}
-            >
-              <span className="sr-only">Severity </span>S{e.severity}
-            </span>
+            {showSeverity && (
+              <span
+                className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-xs tabular-nums ${
+                  e.severity >= 4 ? "border-danger/50 text-danger" : "border-border text-muted"
+                }`}
+              >
+                <span className="sr-only">Severity </span>S{e.severity}
+              </span>
+            )}
           </li>
         );
       })}

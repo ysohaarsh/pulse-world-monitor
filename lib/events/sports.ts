@@ -2,7 +2,8 @@ import { CATEGORIES, SOURCES, type Category, type EventRow, type Source } from "
 
 /**
  * Sports is an opt-in side feed: ingested, but hidden by default in the feed/map and always
- * left out of the threat index (SITREP), /stats and the World Brief. These helpers are the
+ * left out of the threat index (SITREP), /stats and the World Brief's core events and counts
+ * (the brief gives sports its own closing Sports section instead). These helpers are the
  * single definition of "sports" and "core" (everything else) for all of those.
  */
 export const CORE_CATEGORIES: readonly Category[] = CATEGORIES.filter((c) => c !== "sports");

@@ -38,7 +38,7 @@ If you truly need to touch a shared file (`lib/types.ts`, `package.json`, `app/l
 ## Status (2026-10-05) — read this first in a new session
 Live: https://pulse-world-monitor.vercel.app (Vercel auto-deploys `main`). Repo: github.com/ysohaarsh/pulse-world-monitor (public).
 Supabase project `ckhzvkfkmpuenmfvipew`; pg_cron jobs `pulse-ingest` (10 min), `pulse-brief` (00:15 UTC), `pulse-prune`; app URL + cron secret live in Supabase Vault (`pulse_app_url`, `pulse_cron_secret`) and Vercel env (sensitive). Never print/read production secrets — ask the user to copy them (pbcopy).
-Sources: usgs, eonet, gdelt (15-min export files, not the DOC API), rss (15 feeds with AllSides lean in `lib/media-lean.ts`), gdacs, who, sports (opt-in, hidden by default).
+Sources: usgs, eonet, gdelt (15-min export files, not the DOC API), rss (15 feeds with AllSides lean in `lib/media-lean.ts`), gdacs, who, sports (opt-in, hidden by default; the World Brief gives it its own closing `## Sports` section + a "Sports in this period" panel, never counted in core stats).
 Git author must stay the GitHub noreply address.
 
 ### Open items

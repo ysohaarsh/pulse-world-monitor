@@ -205,7 +205,13 @@ describe("normalizeGdacs", () => {
   });
 
   it("is what the ingester's normalize uses", () => {
-    expect(gdacsIngester.normalize(fixture()).map((e) => e.external_id)).toEqual(events.map((e) => e.external_id));
+    // Pin the clock: the ingester uses Date.now(), and the fixture's flood forecast starts after NOW.
+    vi.useFakeTimers({ now: NOW, toFake: ["Date"] });
+    try {
+      expect(gdacsIngester.normalize(fixture()).map((e) => e.external_id)).toEqual(events.map((e) => e.external_id));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

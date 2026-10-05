@@ -3,7 +3,7 @@ import Link from "next/link";
 import { BriefContent } from "@/components/brief/brief-content";
 import { TopEvents } from "@/components/brief/top-events";
 import { formatUtc, formatUtcDate } from "@/lib/stats/format";
-import { fetchTopEvents, fetchWorldBriefs } from "./queries";
+import { fetchSportsHeadlines, fetchTopEvents, fetchWorldBriefs } from "./queries";
 
 export const metadata: Metadata = { title: "World Brief — Pulse" };
 
@@ -25,7 +25,10 @@ export default async function BriefPage({
   const now = new Date();
   const periodStart = brief?.period_start ?? new Date(now.getTime() - 24 * 3_600_000).toISOString();
   const periodEnd = brief?.period_end ?? now.toISOString();
-  const top = await fetchTopEvents(periodStart, periodEnd);
+  const [top, sports] = await Promise.all([
+    fetchTopEvents(periodStart, periodEnd),
+    fetchSportsHeadlines(periodStart, periodEnd),
+  ]);
   const isArchived = brief !== null && selectedId !== null && archive.some((a) => a.period_start > brief.period_start);
 
   return (
@@ -109,6 +112,22 @@ export default async function BriefPage({
               </p>
             ) : (
               <TopEvents events={top.events} />
+            )}
+          </section>
+
+          <section aria-labelledby="sports-title" className="hud-panel p-5">
+            <h2 id="sports-title" className="font-semibold">
+              Sports in this period
+            </h2>
+            <p className="mb-2 text-xs text-muted">
+              Latest sports headlines, {formatUtc(periodStart)} – {formatUtc(periodEnd)}
+            </p>
+            {sports.error ? (
+              <p role="alert" className="text-sm text-danger">
+                Couldn&apos;t load sports: {sports.error}
+              </p>
+            ) : (
+              <TopEvents events={sports.events} emptyText="No sports headlines in this period." showSeverity={false} />
             )}
           </section>
         </div>
