@@ -1,0 +1,39 @@
+name: Dependabot auto-merge
+
+# Squash-merges Dependabot minor/patch PRs once CI has passed on them; majors wait for review.
+# Runs from the default branch via workflow_run and never checks out or runs PR code.
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers] no PR code is checked out or run; PR author and SHA are verified
+    workflows: [CI]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  merge:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.actor.login == 'dependabot[bot]' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge if minor or patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pr=$(gh pr list --head "$HEAD_BRANCH" --state open --json number,author,headRefOid \
+            --jq "map(select(.author.login == \"app/dependabot\" and .headRefOid == \"$HEAD_SHA\")) | .[0].number // empty")
+          if [ -z "$pr" ]; then echo "No open Dependabot PR at $HEAD_SHA (it may have been updated since)."; exit 0; fi
+          # Dependabot records each dependency's update type in its commit messages.
+          if gh pr view "$pr" --json commits --jq '.commits[].messageBody' | grep -q 'version-update:semver-major'; then
+            echo "PR #$pr includes a major update; leaving it for review."; exit 0
+          fi
+          gh pr merge "$pr" --squash --delete-branch --match-head-commit "$HEAD_SHA"
