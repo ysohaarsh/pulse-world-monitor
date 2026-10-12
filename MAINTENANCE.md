@@ -1,0 +1,1 @@
+- 2026-10-12: add unit tests for cron auth and live-event merge (PR)
