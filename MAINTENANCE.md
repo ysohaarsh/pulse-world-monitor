@@ -1,0 +1,1 @@
+- 2026-10-18: added unit tests for event row validation, sports helpers and stats formatting (PR)
